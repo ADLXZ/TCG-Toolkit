@@ -109,11 +109,20 @@ class BaseSearcher:
             raise ValueError("Missing product URL")
         stock_text = _text(card.select_one(".cart_sell_zaiko"))
         stock_status, stock_quantity = self.parse_stock(stock_text)
+        image = card.select_one('.product-img img')
+        image_url = None
+        if image is not None:
+            source = str(image.get('src', '')).strip()
+            if source:
+                candidate = urljoin(url, source)
+                if urlsplit(candidate).scheme in ('http', 'https'):
+                    image_url = candidate
         return SearchItem(
             game=self.game, name=name, card_number=number,
             price=int(price_match[1].replace(",", "")), currency="JPY",
             stock_status=stock_status, stock_quantity=stock_quantity,
             stock_text=stock_text, product_url=urljoin(url, link["href"]),
+            image_url=image_url,
         )
 
     def parse_stock(self, text: str) -> tuple[StockStatus, int | None]:

@@ -1,0 +1,57 @@
+/* Theme tokens. style.css only reads the semantic tokens below;
+   change the palette or remap a semantic token here to restyle the UI. */
+:root {
+  /* Palette */
+  --gray-0: #fff;
+  --gray-50: #fafafa;
+  --gray-100: #f2f2f2;
+  --gray-200: #e6e6e6;
+  --gray-300: #d4d4d4;
+  --gray-400: #a3a3a3;
+  --gray-500: #757575;
+  --gray-600: #5c5c5c;
+  --gray-700: #4d4d4d;
+  --gray-800: #383838;
+  --gray-900: #2b2b2b;
+
+  /* Surfaces */
+  --color-bg: var(--gray-50);
+  --color-surface: var(--gray-0);
+  --color-surface-muted: var(--gray-50);
+  --color-surface-sunken: var(--gray-200);
+  --color-hover: var(--gray-100);
+  --color-toggle-hover: color-mix(in srgb, var(--gray-0) 60%, transparent);
+
+  /* Borders */
+  --color-divider: var(--gray-100);
+  --color-border: var(--gray-200);
+  --color-border-strong: var(--gray-300);
+  --color-border-hover: var(--gray-400);
+
+  /* Text */
+  --color-text: var(--gray-900);
+  --color-text-secondary: var(--gray-600);
+  --color-text-muted: var(--gray-500);
+  --color-text-subtle: var(--gray-400);
+
+  /* Accent */
+  --color-primary: var(--gray-800);
+  --color-primary-hover: var(--gray-700);
+  --color-on-primary: var(--gray-0);
+  --color-focus: var(--gray-700);
+
+  /* Effects */
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-focus) 15%, transparent);
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--gray-900) 12%, transparent);
+  --shadow-md: 0 4px 14px color-mix(in srgb, var(--gray-900) 6%, transparent);
+
+  /* Shape */
+  --radius-sm: 5px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+
+  /* Type */
+  --font-sans: Inter, "Segoe UI", system-ui, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, monospace;
+}

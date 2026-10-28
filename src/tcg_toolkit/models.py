@@ -27,6 +27,7 @@ class SearchItem:
     stock_quantity: int | None
     stock_text: str
     product_url: str
+    image_url: str | None = None
 
     def to_dict(self) -> dict:
         result = asdict(self)

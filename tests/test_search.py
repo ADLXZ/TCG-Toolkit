@@ -198,3 +198,27 @@ def test_iteration_failure_does_not_report_completion():
         with pytest.raises(SearchRequestError) as caught:
             next(pages)
         assert caught.value.page == 2
+
+
+@pytest.mark.parametrize("source,cls", [("wsr_1", WSRSearcher), ("lo_1", LyceeSearcher), ("chaos_1", ChaosTCGSearcher)])
+def test_image_urls(source, cls):
+    with client_for(fixture(source)) as client, cls(client=client) as searcher:
+        result = searcher.search_page("x")
+    assert all(item.image_url.startswith("https://card.yuyu-tei.jp/") for item in result.items)
+    assert result.items[0].to_dict()["image_url"] == result.items[0].image_url
+
+
+@pytest.mark.parametrize("src,expected", [(None, None), ("", None), ("javascript:bad", None),
+    ("/images/card.jpg", "https://yuyu-tei.jp/images/card.jpg"),
+    ("//card.yuyu-tei.jp/a.jpg", "https://card.yuyu-tei.jp/a.jpg")])
+def test_missing_and_relative_image(src, expected):
+    soup = BeautifulSoup(fixture("wsr_1"), "html.parser")
+    image = soup.select_one(".product-img img")
+    if src is None:
+        image.decompose()
+    else:
+        image["src"] = src
+    with client_for(str(soup)) as client, WSRSearcher(client=client) as searcher:
+        item = searcher.search_page("OS01").items[0]
+    assert item.image_url == expected
+    assert item.name and item.price == 548000

@@ -14,6 +14,10 @@ tcg-search = "tcg_toolkit.cli:main"
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
+web = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
+
+[tool.setuptools.package-data]
+tcg_toolkit = ["static/*"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

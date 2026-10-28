@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TCG Toolkit · Search</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="/theme.css">
+<link rel="stylesheet" href="/style.css">
+<script type="module" src="/app.js"></script>
+</head>
+<body>
+<aside>
+  <a class="brand" href="/"><i class="bi bi-stack"></i>TCG<span>Toolkit</span></a>
+  <nav><a href="#search" aria-current="page"><i class="bi bi-search"></i><span>Search</span></a></nav>
+</aside>
+<main id="search">
+  <header><h1>Search</h1></header>
+
+  <section class="panel">
+    <form id="search-form">
+      <div class="search-line">
+        <div class="input-icon">
+          <i class="bi bi-search"></i>
+          <input id="keyword" aria-label="Keyword" placeholder="Card name or number" required autocomplete="off">
+        </div>
+        <button id="search-button" type="submit"><i class="bi bi-arrow-right"></i>Search</button>
+        <button id="stop" class="secondary" type="button" hidden><i class="bi bi-stop-fill"></i>Stop</button>
+      </div>
+      <div class="chips" role="group" aria-label="Games to search">
+        <label class="chip"><input type="checkbox" name="source" value="wsr" checked><i class="bi bi-check-lg"></i>WSR</label>
+        <label class="chip"><input type="checkbox" name="source" value="lycee" checked><i class="bi bi-check-lg"></i>Lycee</label>
+        <label class="chip"><input type="checkbox" name="source" value="chaos" checked><i class="bi bi-check-lg"></i>ChaosTCG</label>
+      </div>
+    </form>
+  </section>
+
+  <section class="results">
+    <div class="section-heading">
+      <div class="heading-left">
+        <h2>Results</h2>
+        <span id="counts" class="count">0 / 0</span>
+        <span id="status" role="status" aria-live="polite"></span>
+      </div>
+      <div class="view-toggle" role="group" aria-label="View">
+        <button type="button" class="icon-button" data-view="list" aria-label="List view" title="List view"><i class="bi bi-list-ul"></i></button>
+        <button type="button" class="icon-button" data-view="grid" aria-label="Grid view" title="Grid view"><i class="bi bi-grid-3x3-gap"></i></button>
+      </div>
+    </div>
+    <div id="errors" role="alert"></div>
+
+    <div class="panel filters">
+      <div class="filter-top">
+        <h3><i class="bi bi-funnel"></i>Filters</h3>
+        <button id="reset" type="button" class="text-button"><i class="bi bi-arrow-counterclockwise"></i>Reset</button>
+      </div>
+      <div class="filter-grid">
+        <label>Find<input id="text-filter" placeholder="Name or number"></label>
+        <label>Stock<select id="stock"><option value="">All</option><option value="in_stock">In stock</option><option value="out_of_stock">Out of stock</option><option value="unknown">Unknown</option></select></label>
+        <label>Min price<input id="min" type="number" min="0" step="1" placeholder="¥0"></label>
+        <label>Max price<input id="max" type="number" min="0" step="1" placeholder="¥∞"></label>
+        <label>Sort<select id="sort"><option value="original">Default</option><option value="price:asc">Price ↑</option><option value="price:desc">Price ↓</option><option value="name:asc">Name A–Z</option><option value="name:desc">Name Z–A</option><option value="card_number:asc">Number ↑</option><option value="card_number:desc">Number ↓</option><option value="stock_quantity:asc">Quantity ↑</option><option value="stock_quantity:desc">Quantity ↓</option></select></label>
+      </div>
+      <div class="chips" role="group" aria-label="Games to show">
+        <label class="chip"><input type="checkbox" name="filter-game" value="wsr" checked><i class="bi bi-check-lg"></i>WSR</label>
+        <label class="chip"><input type="checkbox" name="filter-game" value="lycee" checked><i class="bi bi-check-lg"></i>Lycee</label>
+        <label class="chip"><input type="checkbox" name="filter-game" value="chaos" checked><i class="bi bi-check-lg"></i>ChaosTCG</label>
+      </div>
+      <p id="filter-error" role="alert" class="error"></p>
+    </div>
+
+    <div id="list-view" class="panel table-panel">
+      <div class="table-scroll"><table><thead><tr><th>Game</th><th>Number</th><th>Name</th><th class="numeric">Price</th><th>Stock</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </div>
+    <div id="grid-view" class="card-grid" hidden></div>
+    <div id="empty" class="empty"><i class="bi bi-search"></i><h3>No results</h3></div>
+    <div class="more-wrap"><button id="more" class="secondary" hidden><i class="bi bi-chevron-down"></i>Show more</button></div>
+  </section>
+</main>
+</body>
+</html>

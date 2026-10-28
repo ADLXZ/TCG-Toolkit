@@ -1,0 +1,8 @@
+*
+!pyproject.toml
+!README.md
+!src/
+!src/tcg_toolkit/
+!src/tcg_toolkit/*.py
+!src/tcg_toolkit/static/
+!src/tcg_toolkit/static/*
