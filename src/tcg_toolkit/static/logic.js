@@ -53,3 +53,10 @@ export function sliderBound(steps, index, edge) {
   if (steps.length < 2 || index <= 0 && edge === 'min' || index >= steps.length - 1 && edge === 'max') return null;
   return steps[index];
 }
+
+// YuYu-Tei serves 100x140 thumbnails; the same path under /front/ is the 500x700 image.
+// The noimage placeholder has no larger version, so it is not previewable.
+export function largeImageUrl(url) {
+  if (!url || /\/noimage[^/]*$/.test(url)) return null;
+  return url.replace('/100_140/', '/front/');
+}

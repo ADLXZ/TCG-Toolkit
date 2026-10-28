@@ -18,7 +18,27 @@ def test_public_artifact(tmp_path):
     for value in re.findall(r'(?:src|href)="([^"#]+)"', html):
         assert not value.startswith("/")
         if value.startswith("./") and value != "./":
-            assert (output / value).exists()
+            assert (output / value.split("?")[0]).exists()
+
+
+LOCAL_REF = re.compile(r"""(?:(?:src|href)="|\bfrom\s+['"]|\bimport\s*\(\s*['"])\./([\w.-]+\.(?:js|css))([^"']*)""")
+
+
+def test_every_local_reference_is_stamped(tmp_path):
+    output = tmp_path / "pages"
+    version = module.build(output, "https://api.example.com")
+    refs = [(path.name, name, query) for path in output.iterdir() if path.suffix in {".html", ".js"}
+            for name, query in LOCAL_REF.findall(path.read_text(encoding="utf-8"))]
+    assert any(name == "app.js" and source == "auth.js" for source, name, _ in refs)  # dynamic import
+    for source, name, query in refs:
+        assert query == f"?v={version}", (source, name, query)
+        assert (output / name).exists(), (source, name)
+
+
+def test_version_follows_content(tmp_path):
+    first = module.build(tmp_path / "a", "https://api.example.com")
+    assert module.build(tmp_path / "b", "https://api.example.com") == first
+    assert module.build(tmp_path / "c", "https://other.example.com") != first
 
 
 @pytest.mark.parametrize("url", ["", "http://api.example.com", "https://api.example.com/path", "https://user@api.example.com"])

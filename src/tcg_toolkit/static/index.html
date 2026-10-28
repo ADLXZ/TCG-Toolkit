@@ -148,6 +148,11 @@
 </div>
 </div>
 </template>
+<dialog id="image-dialog" class="image-dialog" aria-labelledby="preview-name">
+<button type="button" id="preview-close" class="icon-button preview-close" data-i18n-aria-label="close" data-i18n-title="close"><i class="bi bi-x-lg"></i></button>
+<figure><div class="preview-frame"><img id="preview-image" alt=""/><i class="bi bi-arrow-repeat spin preview-spinner" aria-hidden="true"></i></div>
+<figcaption><span id="preview-name"></span><span id="preview-number" class="mono"></span></figcaption></figure>
+</dialog>
 <dialog id="detail-dialog" aria-labelledby="detail-title" aria-describedby="detail-description">
 <h2 id="detail-title" data-i18n="detail_title"></h2>
 <p id="detail-description" data-i18n="detail_description"></p>

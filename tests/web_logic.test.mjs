@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 const source = await readFile(new URL('../src/tcg_toolkit/static/logic.js', import.meta.url), 'utf8');
-const {selectItems, loadResults, priceSteps, sliderIndex, sliderBound} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const {selectItems, loadResults, priceSteps, sliderIndex, sliderBound, largeImageUrl} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 const base = {games: ['wsr','chaos'], stock: '', min: null, max: null, text: '', sort: 'original'};
 const items = [
  {game:'wsr',name:'Card 10',card_number:'A10',price:100,stock_status:'in_stock',stock_quantity:null},
@@ -54,4 +54,10 @@ test('price slider maps distinct prices and treats ends as unbounded', () => {
   assert.equal(sliderBound(steps, 1, 'max'), 500);
   assert.equal(sliderBound(steps, 2, 'max'), null);
   assert.equal(sliderBound([100], 0, 'max'), null);
+});
+
+test('large image URL swaps the thumbnail size and skips the placeholder', () => {
+  assert.equal(largeImageUrl('https://card.yuyu-tei.jp/wsr/100_140/OS01/10239.jpg'), 'https://card.yuyu-tei.jp/wsr/front/OS01/10239.jpg');
+  assert.equal(largeImageUrl('https://card.yuyu-tei.jp/noimage_100_140.jpg'), null);
+  assert.equal(largeImageUrl(null), null);
 });
