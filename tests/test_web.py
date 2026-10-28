@@ -10,7 +10,9 @@ client = TestClient(app)
 
 def test_static_and_health():
     assert client.get('/api/health').json() == {'status': 'ok'}
-    assert 'TCG Toolkit' in client.get('/').text
+    assert 'data-i18n="tcg_toolkit_search"' in client.get('/').text
+    assert 'TCG Toolkit' in client.get('/locales.js').text
+    assert client.get('/i18n.js').status_code == 200
     assert client.get('/app.js').status_code == 200
     assert client.get('/theme.css').status_code == 200
     assert client.get('/style.css').status_code == 200

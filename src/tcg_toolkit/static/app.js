@@ -1,18 +1,23 @@
+import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {selectItems, loadResults} from './logic.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
-const labels = {wsr: 'WSR', lycee: 'Lycee', chaos: 'ChaosTCG'};
+const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg"};
+const gameLabel = game => t(gameKeys[game]);
 let items = [], limit = 100, controller = null, batch = 0, started = false;
-const stockLabels = {in_stock: 'In stock', out_of_stock: 'Out of stock', unknown: 'Unknown'};
+const stockKeys = {"in_stock": "in_stock", "out_of_stock": "out_of_stock", "unknown": "unknown"};
 const stockIcons = {in_stock: 'bi-check-circle-fill', out_of_stock: 'bi-x-circle', unknown: 'bi-question-circle'};
 let view = localStorage.getItem('view') === 'grid' ? 'grid' : 'list';
 const el = (tag, className = '', text = '') => {const node = document.createElement(tag); node.className = className; node.textContent = text; return node;};
 const icon = name => el('i', `bi ${name}`);
-function setStatus(text, iconName = '') {
+let statusKey = '', statusIcon = '', errors = [];
+function setStatus(key, iconName = '') {
+  statusKey = key; statusIcon = iconName;
+  const text = key ? t(key) : '';
   $('status').replaceChildren(...(iconName ? [icon(iconName)] : []), text);
 }
 function validateSearch() {
-  const message = !$('keyword').value.trim() ? 'Enter a keyword' : !checked('source').length ? 'Select at least one game' : '';
+  const message = !$('keyword').value.trim() ? t('enter_a_keyword') : !checked('source').length ? t('select_at_least_one_game') : '';
   $('search-button').title = message;
   $('search-button').disabled = Boolean(message);
 }
@@ -31,12 +36,12 @@ function cardLink(item, className = '') {
 function stockBadge(item) {
   const badge = el('span', `badge ${item.stock_status}`);
   badge.append(icon(stockIcons[item.stock_status]),
-    stockLabels[item.stock_status] + (item.stock_quantity === null ? '' : ` (${item.stock_quantity})`));
+    t(stockKeys[item.stock_status]) + (item.stock_quantity === null ? '' : ` (${item.stock_quantity})`));
   return badge;
 }
 function cardImage(item) {
   const frame = el('span', 'card-image');
-  const fallback = el('span', 'image-fallback', 'No image');
+  const fallback = el('span', 'image-fallback', t('no_image'));
   frame.append(fallback);
   if (!item.image_url) return frame;
   let url;
@@ -54,13 +59,13 @@ function tableRow(item) {
   const row = document.createElement('tr');
   const cell = (child, className = '') => {const td = el('td', className); td.append(child); row.append(td);};
   const product = el('div', 'product-summary'); product.append(cardImage(item), cardLink(item));
-  cell(el('span', 'game-tag', labels[item.game])); cell(item.card_number, 'mono'); cell(product);
+  cell(el('span', 'game-tag', gameLabel(item.game))); cell(item.card_number, 'mono'); cell(product);
   cell(`¥${item.price.toLocaleString('en-US')}`, 'numeric'); cell(stockBadge(item));
   return row;
 }
 function gridCard(item) {
   const card = el('article', `card ${item.stock_status}`);
-  const top = el('div', 'card-top'); top.append(el('span', 'game-tag', labels[item.game]), el('span', 'mono', item.card_number));
+  const top = el('div', 'card-top'); top.append(el('span', 'game-tag', gameLabel(item.game)), el('span', 'mono', item.card_number));
   const bottom = el('div', 'card-bottom'); bottom.append(el('span', 'price', `¥${item.price.toLocaleString('en-US')}`), stockBadge(item));
   card.append(top, cardImage(item), cardLink(item, 'card-name'), bottom);
   return card;
@@ -78,11 +83,11 @@ function render() {
   const invalid = !$('min').validity.valid || !$('max').validity.valid
     || [min, max].some(n => n !== null && (!Number.isInteger(n) || n < 0))
     || (min !== null && max !== null && min > max);
-  $('filter-error').textContent = invalid ? 'Invalid price range' : '';
+  $('filter-error').textContent = invalid ? t('invalid_price_range') : '';
   const matches = invalid ? [] : selectItems(items, {games: checked('filter-game'), stock: $('stock').value,
     min, max, text: $('text-filter').value, sort: $('sort').value});
-  $('counts').textContent = `${matches.length.toLocaleString()} / ${items.length.toLocaleString()}`;
-  $('counts').title = `${matches.length.toLocaleString()} matching of ${items.length.toLocaleString()} loaded`;
+  $('counts').textContent = t('counts', {matching: matches.length.toLocaleString(getLanguage()), loaded: items.length.toLocaleString(getLanguage())});
+  $('counts').title = t('counts_hint', {matching: matches.length.toLocaleString(getLanguage()), loaded: items.length.toLocaleString(getLanguage())});
   const shown = matches.slice(0, limit);
   const fragment = document.createDocumentFragment();
   fragment.append(...shown.map(view === 'grid' ? gridCard : tableRow));
@@ -91,8 +96,8 @@ function render() {
   $('list-view').hidden = view !== 'list' || !matches.length;
   $('grid-view').hidden = view !== 'grid' || !matches.length;
   $('empty').hidden = matches.length > 0;
-  $('empty').querySelector('h3').textContent = invalid ? 'Check the price range' : items.length ? 'No matching results'
-    : controller ? 'Searching…' : started ? 'No results found' : 'No results';
+  $('empty').querySelector('h3').textContent = invalid ? t('check_the_price_range') : items.length ? t('no_matching_results')
+    : controller ? t('searching') : started ? t('no_results_found') : t('no_results');
   $('more').hidden = matches.length <= limit;
 }
 function wait(signal) {
@@ -107,27 +112,40 @@ $('search-form').addEventListener('submit', async event => {
   event.preventDefault(); validateSearch(); if ($('search-button').disabled) return;
   controller?.abort(); const current = ++batch;
   const active = new AbortController(); controller = active;
-  items = []; started = true; resetFilters(); $('errors').replaceChildren();
-  setStatus('Searching…', 'bi-arrow-repeat'); $('stop').hidden = false;
+  items = []; started = true; resetFilters(); errors = []; renderErrors();
+  setStatus('searching', 'bi-arrow-repeat'); $('stop').hidden = false;
   const failed = await loadResults({games: checked('source'), keyword: $('keyword').value.trim(), signal: active.signal,
     fetchPage: async (game, keyword, page, signal) => {
       const response = await fetch(`/api/search?${new URLSearchParams({game, keyword, page})}`, {signal});
       const data = await response.json();
-      if (!response.ok) throw new Error(data.detail?.message || 'Unable to search this game.');
+      if (!response.ok) {
+        const key = response.status === 504 ? 'the_source_timed_out' : response.status === 422 ? 'invalid_search_parameters' : ['SearchParseError', 'SearchPaginationError'].includes(data.detail?.type) ? 'could_not_read_the_source_results' : 'could_not_retrieve_results_from_the_source';
+        const error = new Error(); error.translationKey = key; throw error;
+      }
       return data;
     },
     onPage: result => {if (current === batch) {items.push(...result.items); render();}},
-    onError: (game, error) => {if (current === batch) {const p = el('p'); p.append(icon('bi-exclamation-triangle'), `${labels[game]}: ${error.message}`); $('errors').append(p);}}, wait});
+    onError: (game, error) => {if (current === batch) {errors.push({game, key: error.translationKey || 'unable_to_search_this_game'}); renderErrors();}}, wait});
   if (current !== batch) return;
   controller = null; $('stop').hidden = true;
-  if (active.signal.aborted) setStatus('Stopped', 'bi-stop-circle'); else if (failed) setStatus('Incomplete', 'bi-exclamation-triangle'); else setStatus('Done', 'bi-check2');
+  if (active.signal.aborted) setStatus('stopped', 'bi-stop-circle'); else if (failed) setStatus('incomplete', 'bi-exclamation-triangle'); else setStatus('done', 'bi-check2');
   render();
 });
-$('stop').addEventListener('click', () => {controller?.abort(); setStatus('Stopped', 'bi-stop-circle'); $('stop').hidden = true;});
+$('stop').addEventListener('click', () => {controller?.abort(); setStatus('stopped', 'bi-stop-circle'); $('stop').hidden = true;});
 $('keyword').addEventListener('input', validateSearch);
 document.querySelectorAll('[name="source"]').forEach(el => el.addEventListener('change', validateSearch));
 document.querySelectorAll('.filters input, .filters select').forEach(el => el.addEventListener('input', () => {limit = 100; render();}));
 $('reset').addEventListener('click', resetFilters);
 $('more').addEventListener('click', () => {limit += 100; render();});
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
-validateSearch(); setView(view);
+function renderErrors() {
+  $('errors').replaceChildren(...errors.map(({game, key}) => {
+    const p = el('p'); p.append(icon('bi-exclamation-triangle'), t('game_error', {game: gameLabel(game), message: t(key)})); return p;
+  }));
+}
+function refreshLanguage() {
+  applyLanguage(document); $('language').value = getLanguage();
+  setStatus(statusKey, statusIcon); renderErrors(); validateSearch(); render();
+}
+$('language').addEventListener('change', () => {setLanguage($('language').value); refreshLanguage();});
+refreshLanguage(); setView(view);

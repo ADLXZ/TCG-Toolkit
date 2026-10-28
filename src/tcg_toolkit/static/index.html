@@ -1,81 +1,78 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TCG Toolkit · Search</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<link rel="stylesheet" href="/theme.css">
-<link rel="stylesheet" href="/style.css">
-<script type="module" src="/app.js"></script>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title data-i18n="tcg_toolkit_search"></title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+<link href="/theme.css" rel="stylesheet"/>
+<link href="/style.css" rel="stylesheet"/>
+<script src="/app.js" type="module"></script>
 </head>
 <body>
 <aside>
-  <a class="brand" href="/"><i class="bi bi-stack"></i>TCG<span>Toolkit</span></a>
-  <nav><a href="#search" aria-current="page"><i class="bi bi-search"></i><span>Search</span></a></nav>
+<a class="brand" href="/"><i class="bi bi-stack"></i><span data-i18n="tcg"></span><span data-i18n="toolkit"></span></a>
+<nav><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a></nav>
 </aside>
 <main id="search">
-  <header><h1>Search</h1></header>
-
-  <section class="panel">
-    <form id="search-form">
-      <div class="search-line">
-        <div class="input-icon">
-          <i class="bi bi-search"></i>
-          <input id="keyword" aria-label="Keyword" placeholder="Card name or number" required autocomplete="off">
-        </div>
-        <button id="search-button" type="submit"><i class="bi bi-arrow-right"></i>Search</button>
-        <button id="stop" class="secondary" type="button" hidden><i class="bi bi-stop-fill"></i>Stop</button>
-      </div>
-      <div class="chips" role="group" aria-label="Games to search">
-        <label class="chip"><input type="checkbox" name="source" value="wsr" checked><i class="bi bi-check-lg"></i>WSR</label>
-        <label class="chip"><input type="checkbox" name="source" value="lycee" checked><i class="bi bi-check-lg"></i>Lycee</label>
-        <label class="chip"><input type="checkbox" name="source" value="chaos" checked><i class="bi bi-check-lg"></i>ChaosTCG</label>
-      </div>
-    </form>
-  </section>
-
-  <section class="results">
-    <div class="section-heading">
-      <div class="heading-left">
-        <h2>Results</h2>
-        <span id="counts" class="count">0 / 0</span>
-        <span id="status" role="status" aria-live="polite"></span>
-      </div>
-      <div class="view-toggle" role="group" aria-label="View">
-        <button type="button" class="icon-button" data-view="list" aria-label="List view" title="List view"><i class="bi bi-list-ul"></i></button>
-        <button type="button" class="icon-button" data-view="grid" aria-label="Grid view" title="Grid view"><i class="bi bi-grid-3x3-gap"></i></button>
-      </div>
-    </div>
-    <div id="errors" role="alert"></div>
-
-    <div class="panel filters">
-      <div class="filter-top">
-        <h3><i class="bi bi-funnel"></i>Filters</h3>
-        <button id="reset" type="button" class="text-button"><i class="bi bi-arrow-counterclockwise"></i>Reset</button>
-      </div>
-      <div class="filter-grid">
-        <label>Find<input id="text-filter" placeholder="Name or number"></label>
-        <label>Stock<select id="stock"><option value="">All</option><option value="in_stock">In stock</option><option value="out_of_stock">Out of stock</option><option value="unknown">Unknown</option></select></label>
-        <label>Min price<input id="min" type="number" min="0" step="1" placeholder="¥0"></label>
-        <label>Max price<input id="max" type="number" min="0" step="1" placeholder="¥∞"></label>
-        <label>Sort<select id="sort"><option value="original">Default</option><option value="price:asc">Price ↑</option><option value="price:desc">Price ↓</option><option value="name:asc">Name A–Z</option><option value="name:desc">Name Z–A</option><option value="card_number:asc">Number ↑</option><option value="card_number:desc">Number ↓</option><option value="stock_quantity:asc">Quantity ↑</option><option value="stock_quantity:desc">Quantity ↓</option></select></label>
-      </div>
-      <div class="chips" role="group" aria-label="Games to show">
-        <label class="chip"><input type="checkbox" name="filter-game" value="wsr" checked><i class="bi bi-check-lg"></i>WSR</label>
-        <label class="chip"><input type="checkbox" name="filter-game" value="lycee" checked><i class="bi bi-check-lg"></i>Lycee</label>
-        <label class="chip"><input type="checkbox" name="filter-game" value="chaos" checked><i class="bi bi-check-lg"></i>ChaosTCG</label>
-      </div>
-      <p id="filter-error" role="alert" class="error"></p>
-    </div>
-
-    <div id="list-view" class="panel table-panel">
-      <div class="table-scroll"><table><thead><tr><th>Game</th><th>Number</th><th>Name</th><th class="numeric">Price</th><th>Stock</th></tr></thead><tbody id="rows"></tbody></table></div>
-    </div>
-    <div id="grid-view" class="card-grid" hidden></div>
-    <div id="empty" class="empty"><i class="bi bi-search"></i><h3>No results</h3></div>
-    <div class="more-wrap"><button id="more" class="secondary" hidden><i class="bi bi-chevron-down"></i>Show more</button></div>
-  </section>
+<header><h1 data-i18n="search"></h1><label class="language-control"><span data-i18n="language"></span><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label></header>
+<section class="panel">
+<form id="search-form">
+<div class="search-line">
+<div class="input-icon">
+<i class="bi bi-search"></i>
+<input autocomplete="off" data-i18n-aria-label="keyword" data-i18n-placeholder="card_name_or_number" id="keyword" required=""/>
+</div>
+<button id="search-button" type="submit"><i class="bi bi-arrow-right"></i><span data-i18n="search"></span></button>
+<button class="secondary" hidden="" id="stop" type="button"><i class="bi bi-stop-fill"></i><span data-i18n="stop"></span></button>
+</div>
+<div class="chips" data-i18n-aria-label="games_to_search" role="group">
+<label class="chip"><input checked="" name="source" type="checkbox" value="wsr"/><i class="bi bi-check-lg"></i><span data-i18n="wsr"></span></label>
+<label class="chip"><input checked="" name="source" type="checkbox" value="lycee"/><i class="bi bi-check-lg"></i><span data-i18n="lycee"></span></label>
+<label class="chip"><input checked="" name="source" type="checkbox" value="chaos"/><i class="bi bi-check-lg"></i><span data-i18n="chaostcg"></span></label>
+</div>
+</form>
+</section>
+<section class="results">
+<div class="section-heading">
+<div class="heading-left">
+<h2 data-i18n="results"></h2>
+<span class="count" id="counts">0 / 0</span>
+<span aria-live="polite" id="status" role="status"></span>
+</div>
+<div class="view-toggle" data-i18n-aria-label="view" role="group">
+<button class="icon-button" data-i18n-aria-label="list_view" data-i18n-title="list_view" data-view="list" type="button"><i class="bi bi-list-ul"></i></button>
+<button class="icon-button" data-i18n-aria-label="grid_view" data-i18n-title="grid_view" data-view="grid" type="button"><i class="bi bi-grid-3x3-gap"></i></button>
+</div>
+</div>
+<div id="errors" role="alert"></div>
+<div class="panel filters">
+<div class="filter-top">
+<h3><i class="bi bi-funnel"></i><span data-i18n="filters"></span></h3>
+<button class="text-button" id="reset" type="button"><i class="bi bi-arrow-counterclockwise"></i><span data-i18n="reset"></span></button>
+</div>
+<div class="filter-grid">
+<label><span data-i18n="find"></span><input data-i18n-placeholder="name_or_number" id="text-filter"/></label>
+<label><span data-i18n="stock"></span><select id="stock"><option data-i18n="all" value=""></option><option data-i18n="in_stock" value="in_stock"></option><option data-i18n="out_of_stock" value="out_of_stock"></option><option data-i18n="unknown" value="unknown"></option></select></label>
+<label><span data-i18n="min_price"></span><input data-i18n-placeholder="zero_price" id="min" min="0" step="1" type="number"/></label>
+<label><span data-i18n="max_price"></span><input data-i18n-placeholder="unlimited_price" id="max" min="0" step="1" type="number"/></label>
+<label><span data-i18n="sort"></span><select id="sort"><option data-i18n="default" value="original"></option><option data-i18n="price_ascending" value="price:asc"></option><option data-i18n="price_descending" value="price:desc"></option><option data-i18n="name_a_z" value="name:asc"></option><option data-i18n="name_z_a" value="name:desc"></option><option data-i18n="number_ascending" value="card_number:asc"></option><option data-i18n="number_descending" value="card_number:desc"></option><option data-i18n="quantity_ascending" value="stock_quantity:asc"></option><option data-i18n="quantity_descending" value="stock_quantity:desc"></option></select></label>
+</div>
+<div class="chips" data-i18n-aria-label="games_to_show" role="group">
+<label class="chip"><input checked="" name="filter-game" type="checkbox" value="wsr"/><i class="bi bi-check-lg"></i><span data-i18n="wsr"></span></label>
+<label class="chip"><input checked="" name="filter-game" type="checkbox" value="lycee"/><i class="bi bi-check-lg"></i><span data-i18n="lycee"></span></label>
+<label class="chip"><input checked="" name="filter-game" type="checkbox" value="chaos"/><i class="bi bi-check-lg"></i><span data-i18n="chaostcg"></span></label>
+</div>
+<p class="error" id="filter-error" role="alert"></p>
+</div>
+<div class="panel table-panel" id="list-view">
+<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th></tr></thead><tbody id="rows"></tbody></table></div>
+</div>
+<div class="card-grid" hidden="" id="grid-view"></div>
+<div class="empty" id="empty"><i class="bi bi-search"></i><h3 data-i18n="no_results"></h3></div>
+<div class="more-wrap"><button class="secondary" hidden="" id="more"><i class="bi bi-chevron-down"></i><span data-i18n="show_more"></span></button></div>
+</section>
 </main>
 </body>
 </html>
