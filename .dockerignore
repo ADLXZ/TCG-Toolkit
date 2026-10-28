@@ -8,3 +8,6 @@
 !src/tcg_toolkit/external/*.py
 !src/tcg_toolkit/static/
 !src/tcg_toolkit/static/*
+
+!src/tcg_toolkit/auth/
+!src/tcg_toolkit/auth/*.py

@@ -1,0 +1,105 @@
+name: Test and release
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.event_name == 'pull_request' && github.ref || 'production-release' }}
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: pip install '.[test,web]'
+      - run: python -m pytest -q
+      - run: node --test tests/*.test.mjs
+  build:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.name }}@${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build public frontend
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+        run: python scripts/build_pages.py --output pages --api "$API_BASE_URL"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+      - id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.image.outputs.name }}:${{ github.sha }}
+          build-args: BUILD_SHA=${{ github.sha }}
+          platforms: linux/amd64
+  backend:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy immutable backend
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ vars.DEPLOY_HOST }}
+          SSH_USER: ${{ vars.DEPLOY_USER }}
+          ROOT: ${{ vars.DEPLOY_PATH }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          IMAGE: ${{ needs.build.outputs.image }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$SSH_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$ROOT" =~ ^/[a-zA-Z0-9_/-]+$ ]]
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+          ssh -o StrictHostKeyChecking=yes "$SSH_USER@$HOST" "mkdir -p '$ROOT/releases/$GITHUB_SHA'"
+          scp -o StrictHostKeyChecking=yes deploy/* "$SSH_USER@$HOST:$ROOT/releases/$GITHUB_SHA/"
+          ssh -o StrictHostKeyChecking=yes "$SSH_USER@$HOST" "sudo -n python3 '$ROOT/releases/$GITHUB_SHA/deploy.py' '$ROOT' '$IMAGE' '$GITHUB_SHA'"
+          EXPECTED_SHA="$GITHUB_SHA" python - <<'PY'
+          import json, os, urllib.request
+          with urllib.request.urlopen(os.environ['API_BASE_URL'] + '/api/version', timeout=20) as response:
+              assert json.load(response) == {'sha': os.environ['EXPECTED_SHA']}
+          PY
+  pages:
+    needs: [build, backend]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+        id: deployment

@@ -2,7 +2,6 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from fastapi.testclient import TestClient
 from tcg_toolkit.web import app
-from tcg_toolkit.auth.routes import COOKIE
 from tcg_toolkit.auth.service import AuthService, DuplicateUsername, token_hash
 from tcg_toolkit.auth.store import UserStore
 
@@ -22,13 +21,12 @@ def client(monkeypatch, tmp_path):
 def test_register_session_logout_login(client):
     response = client.post("/api/auth/register", json={**BODY, "confirm_password": BODY["password"]})
     assert response.status_code == 201
-    user = response.json()
+    user = response.json()["user"]
     assert set(user) == {"id", "username", "created_at"}
     assert user["username"] == "alice"
-    cookie = response.headers["set-cookie"]
-    for part in ("HttpOnly", "Secure", "SameSite=lax", "Path=/", "Max-Age=604800"):
-        assert part in cookie
-    token = client.cookies.get(COOKIE)
+    assert "set-cookie" not in response.headers
+    token = response.json()["token"]
+    client.headers["Authorization"] = "Bearer " + token
     assert client.get("/api/auth/me").json() == user
     store = app.state.auth.store
     with store.connect() as db:
@@ -107,9 +105,9 @@ def test_concurrent_registration(client):
 
 def test_restart_keeps_session(client):
     client.post("/api/auth/register", json={**BODY, "confirm_password": BODY["password"]})
-    token = client.cookies.get(COOKIE)
+    token = app.state.auth.login(BODY["username"], BODY["password"])[1]
     with TestClient(app, base_url=ORIGIN) as restarted:
-        restarted.cookies.set(COOKIE, token)
+        restarted.headers["Authorization"] = "Bearer " + token
         assert restarted.get("/api/auth/me").json()["username"] == "alice"
 
 
@@ -125,3 +123,30 @@ def test_password_lengths(client, length, expected):
 def test_registration_confirmation(client):
     assert client.post("/api/auth/register", json=BODY).status_code == 422
     assert client.post("/api/auth/register", json={**BODY, "confirm_password":"different-password"}).status_code == 422
+
+
+@pytest.mark.parametrize("method", ["GET", "POST", "DELETE"])
+def test_cors(client, method):
+    headers = {"Origin": ORIGIN, "Access-Control-Request-Method": method,
+               "Access-Control-Request-Headers": "authorization,content-type"}
+    response = client.options("/api/auth/me", headers=headers)
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == ORIGIN
+    assert "access-control-allow-credentials" not in response.headers
+    response = client.options("/api/auth/me", headers={**headers, "Origin": "https://evil.test"})
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
+
+
+def test_cookie_ignored_and_malformed_bearer(client):
+    token = app.state.auth.register(**BODY)[1]
+    client.cookies.set("tcg_session", token)
+    assert client.get("/api/auth/me").status_code == 401
+    for value in ("Basic " + token, "Bearer", "Bearer wrong", "Bearer " + token + " extra"):
+        assert client.get("/api/auth/me", headers={"Authorization": value}).status_code == 401
+    assert client.get("/api/auth/me", headers={"Authorization": "Bearer " + token}).status_code == 200
+
+
+def test_build_version(client, monkeypatch):
+    monkeypatch.setenv("TCG_BUILD_SHA", "a" * 40)
+    assert client.get("/api/version").json() == {"sha": "a" * 40}

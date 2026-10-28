@@ -1,8 +1,9 @@
+import {apiRequest, getToken, setToken, TOKEN_KEY} from './api.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {createAuthenticatedRequest} from './auth-client.js';
 const $ = id => document.getElementById(id);
 let user = null, searchApp = null, registering = false, errorKey = '';
-const api = createAuthenticatedRequest(() => signedOut('auth_expired'));
+const api = createAuthenticatedRequest(() => signedOut('auth_expired'), apiRequest);
 function showPage() {
   const favorites = Boolean(user) && location.hash === '#favorites';
   $('favorites-panel').hidden = !favorites;
@@ -49,7 +50,8 @@ function updateConfirmState() {
 function setAvatar(name) {
   for (const id of ['user-avatar', 'account-avatar']) $(id).textContent = name.slice(0, 1).toUpperCase();
 }
-function signedOut(message = '') {
+function signedOut(message = '', clearToken = true) {
+  if (clearToken) setToken(null);
   api.invalidate(); searchApp?.clearUser(); user = null;
   registering = false; $('account-status').textContent = '';
   $('current-username').textContent = ''; $('account-username').textContent = ''; $('account-created').textContent = ''; setAvatar('');
@@ -57,8 +59,10 @@ function signedOut(message = '') {
   location.hash = '#login'; showPage(); refresh();
 }
 async function signedIn(value) {
+  const expectedToken = getToken();
   api.invalidate();
   searchApp ??= await import('./app.js');
+  if (getToken() !== expectedToken) return;
   user = value; searchApp.activateUser(user.id, api.fetch);
   $('account-status').textContent = '';
   $('current-username').textContent = user.username;
@@ -77,12 +81,12 @@ $('auth-form').addEventListener('submit', async event => {
   $('auth-submit').disabled = true; $('auth-switch').disabled = true;
   errorKey = ''; refresh();
   try {
-    const response = await fetch(`/api/auth/${registering ? 'register' : 'login'}`, {
+    const response = await apiRequest(`/api/auth/${registering ? 'register' : 'login'}`, {
       method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({username: $('auth-username').value, password: $('auth-password').value, ...(registering ? {confirm_password: $('auth-confirm-password').value} : {})})
     });
     if (!response.ok) {errorKey = responseError(response.status); refresh(); return;}
-    await signedIn(await response.json());
+    const result = await response.json(); setToken(result.token); await signedIn(result.user);
   } catch { errorKey = 'auth_unavailable'; refresh(); }
   finally { $('auth-submit').disabled = false; $('auth-switch').disabled = false; }
 });
@@ -97,7 +101,7 @@ $('logout').addEventListener('click', async () => {
   $('logout').disabled = true;
   api.invalidate(); searchApp?.clearUser();
   try {
-    const response = await fetch('/api/auth/logout', {method: 'POST',
+    const response = await apiRequest('/api/auth/logout', {method: 'POST',
       headers: {'Content-Type': 'application/json'}, body: '{}'});
     if (!response.ok) throw new Error('logout');
     signedOut();
@@ -108,10 +112,25 @@ $('auth-language').addEventListener('change', () => {setLanguage($('auth-languag
 $('language').addEventListener('change', () => {setLanguage($('language').value); refresh();});
 window.addEventListener('hashchange', showPage);
 refresh(); showPage();
-$('auth-submit').disabled = true;
-try {
-  const response = await fetch('/api/auth/me', {cache: 'no-store'});
-  if (response.ok) await signedIn(await response.json());
-  else if (response.status !== 401) {errorKey = 'auth_unavailable'; refresh();}
-} catch {errorKey = 'auth_unavailable'; refresh();}
-finally {$('auth-submit').disabled = false;}
+let restoreGeneration = 0;
+async function restoreSession() {
+  const generation = ++restoreGeneration;
+  const token = getToken();
+  const destination = location.hash;
+  signedOut('', false);
+  if (!token) { $('auth-submit').disabled = false; return; }
+  $('auth-submit').disabled = true;
+  try {
+    const response = await apiRequest('/api/auth/me', {cache: 'no-store'});
+    const value = response.ok ? await response.json() : null;
+    if (generation !== restoreGeneration || token !== getToken()) return;
+    if (response.ok) { location.hash = destination; await signedIn(value); }
+    else if (response.status === 401) signedOut();
+    else {errorKey = 'auth_unavailable'; refresh();}
+  } catch {if (generation === restoreGeneration) {errorKey = 'auth_unavailable'; refresh();}}
+  finally {if (generation === restoreGeneration) $('auth-submit').disabled = false;}
+}
+window.addEventListener('storage', event => {
+  if (event.key === TOKEN_KEY || event.key === null) restoreSession();
+});
+await restoreSession();

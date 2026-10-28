@@ -1,6 +1,8 @@
 """Local browser API; the existing searchers own upstream parsing."""
 from contextlib import asynccontextmanager
 from pathlib import Path
+import os
+from starlette.middleware.cors import CORSMiddleware
 from typing import Annotated
 
 import httpx
@@ -21,7 +23,19 @@ async def lifespan(app):
     yield
 
 
+class BrowserCORS:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        origins = getattr(scope["app"].state, "auth_origins", set())
+        await CORSMiddleware(self.app, allow_origins=list(origins),
+                             allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+                             allow_headers=["Authorization", "Content-Type"])(scope, receive, send)
+
+
 app = FastAPI(title="TCG Toolkit", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app.add_middleware(BrowserCORS)
 app.include_router(auth_router)
 app.include_router(favorites_router)
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher, Game.WS: WSSearcher, Game.PM: PMSearcher}
@@ -33,6 +47,11 @@ async def favorite_cache_policy(request, call_next):
     if request.url.path == '/api/favorites' or request.url.path.startswith('/api/favorites/'):
         response.headers['Cache-Control'] = 'no-store'
     return response
+
+
+@app.get("/api/version")
+def version():
+    return {"sha": os.getenv("TCG_BUILD_SHA", "local")}
 
 
 @app.get("/api/health")

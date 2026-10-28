@@ -33,7 +33,8 @@ def login(client, username):
     response = client.post('/api/auth/register', json={
         'username': username, 'password': 'password123', 'confirm_password': 'password123'})
     assert response.status_code == 201
-    return response.json()
+    client.headers["Authorization"] = "Bearer " + response.json()["token"]
+    return response.json()["user"]
 
 
 def add(client, item=None):
@@ -65,7 +66,7 @@ def test_access_and_validation(client):
     assert client.post('/api/favorites', content='{}', headers={'Content-Type': 'text/plain'}).status_code == 415
     for url in ['https://evil.test/sell/wsr/card/a', 'https://yuyu-tei.jp/sell/lo/card/a', 'https://yuyu-tei.jp/sell/wsr/card/../a']:
         assert client.post('/api/favorites', json={**card().to_dict(), 'product_url': url}).status_code == 422
-    client.cookies.clear()
+    client.headers.pop("Authorization", None)
     for method, url in [('GET', '/api/favorites'), ('POST', '/api/favorites'), ('DELETE', '/api/favorites/x'), ('POST', '/api/favorites/x/refresh')]:
         response = client.request(method, url, json=card().to_dict())
         assert response.status_code == 401

@@ -1,14 +1,13 @@
-"""Same-origin browser authentication routes and shared access dependency."""
+"""Bearer browser authentication routes and shared access dependency."""
 from collections import deque
 import os
 from threading import Lock
 import time
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field, model_validator
-from .service import AuthService, DuplicateUsername, SESSION_SECONDS
+from .service import AuthService, DuplicateUsername
 from .store import UserStore
 
-COOKIE = "tcg_session"
 router = APIRouter(prefix="/api/auth")
 
 
@@ -52,15 +51,19 @@ def initialize_auth(app):
     app.state.auth_limiter = RateLimiter()
     app.state.auth_origins = {value.strip().rstrip("/") for value in
                               os.getenv("TCG_TRUSTED_ORIGINS", "").split(",") if value.strip()}
-    app.state.auth_secure = os.getenv("TCG_COOKIE_SECURE", "true").lower() != "false"
 
 
 def service(request: Request):
     return request.app.state.auth
 
 
+def bearer_token(request: Request):
+    scheme, _, token = request.headers.get("authorization", "").partition(" ")
+    return token if scheme.lower() == "bearer" and token and " " not in token else None
+
+
 def current_user(request: Request):
-    user = service(request).current_user(request.cookies.get(COOKIE))
+    user = service(request).current_user(bearer_token(request))
     if user is None:
         raise HTTPException(401, detail="authentication_required")
     return user
@@ -80,20 +83,14 @@ def credentials_guard(request: Request):
     request.app.state.auth_limiter.check((action, ip), 5 if action == "register" else 10)
 
 
-def set_session(request, response, token):
-    response.set_cookie(COOKIE, token, max_age=SESSION_SECONDS, httponly=True,
-                        secure=request.app.state.auth_secure, samesite="lax", path="/")
-    response.headers["Cache-Control"] = "no-store"
-
-
 @router.post("/register", status_code=201, dependencies=[Depends(credentials_guard)])
 def register(body: RegistrationCredentials, request: Request, response: Response):
     try:
         user, token = service(request).register(body.username, body.password)
     except DuplicateUsername:
         raise HTTPException(409, detail="username_taken") from None
-    set_session(request, response, token)
-    return user
+    response.headers["Cache-Control"] = "no-store"
+    return {"user": user, "token": token}
 
 
 @router.post("/login", dependencies=[Depends(credentials_guard)])
@@ -102,21 +99,19 @@ def login(body: Credentials, request: Request, response: Response):
     if result is None:
         raise HTTPException(401, detail="invalid_credentials")
     user, token = result
-    old_token = request.cookies.get(COOKIE)
+    old_token = bearer_token(request)
     if old_token:
         service(request).logout(old_token)
-    set_session(request, response, token)
-    return user
+    response.headers["Cache-Control"] = "no-store"
+    return {"user": user, "token": token}
 
 
 @router.post("/logout", status_code=204, dependencies=[Depends(write_guard)])
 def logout(request: Request):
-    token = request.cookies.get(COOKIE)
+    token = bearer_token(request)
     if token:
         service(request).logout(token)
     response = Response(status_code=204, headers={"Cache-Control": "no-store"})
-    response.delete_cookie(COOKIE, path="/", secure=request.app.state.auth_secure,
-                           httponly=True, samesite="lax")
     return response
 
 

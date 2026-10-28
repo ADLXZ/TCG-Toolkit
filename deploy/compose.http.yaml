@@ -1,0 +1,24 @@
+name: tcg-http
+services:
+  web:
+    build:
+      context: ${TCG_SOURCE_DIR:-..}
+    ports:
+      - "18080:8000"
+    environment:
+      RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
+      TCG_TRUSTED_ORIGINS: http://99.79.33.22:18080,https://oscarzhang-735.github.io
+      TCG_USER_DB: /app/data/users.sqlite3
+      TCG_CURRENCY_CACHE: /app/data/currency.sqlite3
+      FORWARDED_ALLOW_IPS: ""
+    volumes:
+      - data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+volumes:
+  data:
+    name: tcg-http-data
