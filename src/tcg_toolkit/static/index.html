@@ -8,14 +8,51 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
 <link href="/theme.css" rel="stylesheet"/>
 <link href="/style.css" rel="stylesheet"/>
-<script src="/app.js" type="module"></script>
+<script src="/auth.js" type="module"></script>
 </head>
-<body>
+<body class="signed-out">
 <aside>
 <a class="brand" href="/"><i class="bi bi-stack"></i><span data-i18n="tcg"></span><span data-i18n="toolkit"></span></a>
-<nav><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a></nav>
+<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a></nav>
+<div id="user-bar" class="sidebar-user" hidden>
+<a href="#account" id="account-link" class="user-link"><span class="avatar" id="user-avatar" aria-hidden="true"></span><span class="user-meta"><span id="current-username"></span><span class="user-sub" data-i18n="auth_account"></span></span></a>
+</div>
 </aside>
-<main id="search">
+<main id="auth-panel">
+<label class="auth-language"><i class="bi bi-globe2"></i><select id="auth-language" data-i18n-aria-label="language"><option value="en">English</option><option value="zh-CN">简体中文</option></select></label>
+<div class="auth-wrap">
+<div class="brand auth-brand"><i class="bi bi-stack"></i><span data-i18n="tcg"></span><span data-i18n="toolkit"></span></div>
+<section class="panel auth-card">
+<h1 id="auth-heading"></h1>
+<form id="auth-form">
+<label class="field"><span data-i18n="auth_username"></span><span class="input-icon"><i class="bi bi-person"></i><input id="auth-username" name="username" autocomplete="username" minlength="3" maxlength="32" pattern="[A-Za-z0-9_\-]+" required aria-describedby="auth-rules"/></span></label>
+<label class="field"><span data-i18n="auth_password"></span><span class="input-icon"><i class="bi bi-lock"></i><input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="8" maxlength="18" required aria-describedby="auth-rules"/><button id="password-toggle" class="password-toggle" type="button" aria-pressed="false"><i class="bi bi-eye"></i></button></span></label>
+<label class="field" id="auth-confirm-field" hidden><span data-i18n="auth_confirm_password"></span><span class="input-icon"><i class="bi bi-shield-lock"></i><input id="auth-confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="8" maxlength="18"/><i id="confirm-state" class="confirm-state" aria-hidden="true"></i></span></label>
+<p id="auth-rules" data-i18n="auth_rules" hidden></p>
+<p id="auth-error" role="alert"></p>
+<button id="auth-submit" type="submit" disabled></button>
+<button id="auth-switch" type="button" class="text-button"></button>
+</form>
+</section>
+</div>
+</main>
+<main id="account-panel" hidden>
+<header><h1 data-i18n="auth_account"></h1></header>
+<section class="panel profile-card">
+<span class="avatar avatar-lg" id="account-avatar" aria-hidden="true"></span>
+<div class="profile-meta"><h2 id="account-username"></h2><p><i class="bi bi-calendar3"></i><span data-i18n="auth_created"></span><time id="account-created"></time></p></div>
+<div class="profile-actions">
+<button id="logout" type="button" class="secondary"><i class="bi bi-box-arrow-right"></i><span data-i18n="auth_logout"></span></button>
+<span id="account-status" role="alert"></span>
+</div>
+</section>
+<div class="account-grid">
+<section class="panel account-card"><span class="account-icon"><i class="bi bi-person-vcard"></i></span><h2 data-i18n="auth_profile"></h2><span class="soon" data-i18n="auth_coming"></span></section>
+<section class="panel account-card"><span class="account-icon"><i class="bi bi-shield-lock"></i></span><h2 data-i18n="auth_security"></h2><span class="soon" data-i18n="auth_coming"></span></section>
+<section class="panel account-card"><span class="account-icon"><i class="bi bi-sliders"></i></span><h2 data-i18n="auth_preferences"></h2><span class="soon" data-i18n="auth_coming"></span></section>
+</div>
+</main>
+<main id="search" hidden>
 <header><h1 data-i18n="search"></h1><label class="language-control"><span data-i18n="language"></span><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label><div class="currency-toolbar"><label class="language-control"><span data-i18n="display_currency"></span><select id="currency" data-i18n-aria-label="display_currency"><option value="JPY" data-i18n="currency_jpy"></option><option value="CNY" data-i18n="currency_cny"></option><option value="CAD" data-i18n="currency_cad"></option></select></label><span id="currency-status" role="status" aria-live="polite"></span></div></header>
 <section class="panel">
 <form id="search-form">

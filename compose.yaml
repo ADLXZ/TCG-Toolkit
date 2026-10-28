@@ -4,6 +4,10 @@ services:
     environment:
       RAPIDAPI_KEY: "${RAPIDAPI_KEY:-}"
       TCG_CURRENCY_CACHE: /app/data/currency.sqlite3
+      TCG_USER_DB: /app/data/users.sqlite3
+      TCG_TRUSTED_ORIGINS: "${TCG_TRUSTED_ORIGINS:-}"
+      TCG_COOKIE_SECURE: "${TCG_COOKIE_SECURE:-true}"
+      FORWARDED_ALLOW_IPS: "${TCG_PROXY_IPS:-127.0.0.1}"
     volumes:
       - currency-data:/app/data
     ports:

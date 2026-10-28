@@ -1,0 +1,126 @@
+"""Same-origin browser authentication routes and shared access dependency."""
+from collections import deque
+import os
+from threading import Lock
+import time
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from pydantic import BaseModel, Field, model_validator
+from .service import AuthService, DuplicateUsername, SESSION_SECONDS
+from .store import UserStore
+
+COOKIE = "tcg_session"
+router = APIRouter(prefix="/api/auth")
+
+
+class Credentials(BaseModel):
+    username: str = Field(min_length=3, max_length=32, pattern=r"^[A-Za-z0-9_-]+$")
+    password: str = Field(min_length=8, max_length=18)
+
+
+class RegistrationCredentials(Credentials):
+    confirm_password: str = Field(min_length=8, max_length=18)
+
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.password != self.confirm_password:
+            raise ValueError("Passwords do not match.")
+        return self
+
+
+class RateLimiter:
+    def __init__(self):
+        self.entries = {}
+        self.lock = Lock()
+
+    def check(self, key, limit):
+        now = time.monotonic()
+        with self.lock:
+            for old_key in list(self.entries):
+                queue = self.entries[old_key]
+                while queue and queue[0] <= now - 60:
+                    queue.popleft()
+                if not queue:
+                    del self.entries[old_key]
+            queue = self.entries.setdefault(key, deque())
+            if len(queue) >= limit:
+                raise HTTPException(429, detail="rate_limited", headers={"Retry-After": "60"})
+            queue.append(now)
+
+
+def initialize_auth(app):
+    app.state.auth = AuthService(UserStore(os.getenv("TCG_USER_DB", "data/users.sqlite3")))
+    app.state.auth_limiter = RateLimiter()
+    app.state.auth_origins = {value.strip().rstrip("/") for value in
+                              os.getenv("TCG_TRUSTED_ORIGINS", "").split(",") if value.strip()}
+    app.state.auth_secure = os.getenv("TCG_COOKIE_SECURE", "true").lower() != "false"
+
+
+def service(request: Request):
+    return request.app.state.auth
+
+
+def current_user(request: Request):
+    user = service(request).current_user(request.cookies.get(COOKIE))
+    if user is None:
+        raise HTTPException(401, detail="authentication_required")
+    return user
+
+
+def write_guard(request: Request):
+    if request.headers.get("origin") not in request.app.state.auth_origins:
+        raise HTTPException(403, detail="untrusted_origin")
+    if request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+        raise HTTPException(415, detail="json_required")
+
+
+def credentials_guard(request: Request):
+    write_guard(request)
+    action = request.url.path.rsplit("/", 1)[-1]
+    ip = request.client.host if request.client else "unknown"
+    request.app.state.auth_limiter.check((action, ip), 5 if action == "register" else 10)
+
+
+def set_session(request, response, token):
+    response.set_cookie(COOKIE, token, max_age=SESSION_SECONDS, httponly=True,
+                        secure=request.app.state.auth_secure, samesite="lax", path="/")
+    response.headers["Cache-Control"] = "no-store"
+
+
+@router.post("/register", status_code=201, dependencies=[Depends(credentials_guard)])
+def register(body: RegistrationCredentials, request: Request, response: Response):
+    try:
+        user, token = service(request).register(body.username, body.password)
+    except DuplicateUsername:
+        raise HTTPException(409, detail="username_taken") from None
+    set_session(request, response, token)
+    return user
+
+
+@router.post("/login", dependencies=[Depends(credentials_guard)])
+def login(body: Credentials, request: Request, response: Response):
+    result = service(request).login(body.username, body.password)
+    if result is None:
+        raise HTTPException(401, detail="invalid_credentials")
+    user, token = result
+    old_token = request.cookies.get(COOKIE)
+    if old_token:
+        service(request).logout(old_token)
+    set_session(request, response, token)
+    return user
+
+
+@router.post("/logout", status_code=204, dependencies=[Depends(write_guard)])
+def logout(request: Request):
+    token = request.cookies.get(COOKIE)
+    if token:
+        service(request).logout(token)
+    response = Response(status_code=204, headers={"Cache-Control": "no-store"})
+    response.delete_cookie(COOKIE, path="/", secure=request.app.state.auth_secure,
+                           httponly=True, samesite="lax")
+    return response
+
+
+@router.get("/me")
+def me(response: Response, user=Depends(current_user)):
+    response.headers["Cache-Control"] = "no-store"
+    return user

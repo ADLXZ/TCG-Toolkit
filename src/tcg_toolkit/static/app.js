@@ -28,7 +28,7 @@ $('currency').addEventListener('change', async () => {
   renderCurrencyStatus(); render();
   try {
     let fetchedAt = null;
-    const rate = await fetchRate(target, fetch, value => { fetchedAt = value; });
+    const rate = await fetchRate(target, requestAPI, value => { fetchedAt = value; });
     if (request !== currencyRequest) return;
     displayCurrency = target; exchangeRate = rate;
     currencyStatus = fetchedAt;
@@ -38,7 +38,8 @@ $('currency').addEventListener('change', async () => {
   }
   renderCurrencyStatus(); render();
 });
-let history = readHistory(localStorage);
+let userId = null, requestAPI = fetch;
+let history = [];
 function closeHistory() { $('search-history').hidden = true; $('keyword').setAttribute('aria-expanded', 'false'); }
 function showHistory() {
   const list = $('history-items');
@@ -54,7 +55,7 @@ function showHistory() {
     remove.addEventListener('click', event => {
       event.preventDefault(); event.stopPropagation();
       history = history.filter(value => value !== keyword);
-      saveHistory(localStorage, history);
+      saveHistory(localStorage, history, userId);
       $('keyword').focus(); showHistory();
     });
     row.append(button, remove);
@@ -66,7 +67,7 @@ function showHistory() {
 }
 $('keyword').addEventListener('focus', showHistory);
 $('history-clear').addEventListener('click', () => {
-  history = []; saveHistory(localStorage, history);
+  history = []; saveHistory(localStorage, history, userId);
   $('keyword').focus(); showHistory();
 });
 $('keyword').addEventListener('click', showHistory);
@@ -219,15 +220,15 @@ function wait(signal) {
   });
 }
 $('search-form').addEventListener('submit', async event => {
-  event.preventDefault(); validateSearch(); if ($('search-button').disabled) return;
-  history = appendHistory(history, $('keyword').value); saveHistory(localStorage, history); closeHistory();
+  event.preventDefault(); if (!userId) return; validateSearch(); if ($('search-button').disabled) return;
+  history = appendHistory(history, $('keyword').value); saveHistory(localStorage, history, userId); closeHistory();
   controller?.abort(); const current = ++batch;
   const active = new AbortController(); controller = active;
   items = []; started = true; resetFilters(); errors = []; renderErrors();
   setStatus('searching', 'bi-arrow-repeat'); $('stop').hidden = false;
   const failed = await loadResults({games: checked('source'), keyword: $('keyword').value.trim(), signal: active.signal,
     fetchPage: async (game, keyword, page, signal) => {
-      const response = await fetch(`/api/search?${new URLSearchParams({game, keyword, page})}`, {signal});
+      const response = await requestAPI(`/api/search?${new URLSearchParams({game, keyword, page})}`, {signal});
       const data = await response.json();
       if (!response.ok) {
         const key = response.status === 504 ? 'the_source_timed_out' : response.status === 422 ? 'invalid_search_parameters' : ['SearchParseError', 'SearchPaginationError'].includes(data.detail?.type) ? 'could_not_read_the_source_results' : 'could_not_retrieve_results_from_the_source';
@@ -272,3 +273,20 @@ $('detail-cancel').addEventListener('click', () => $('detail-dialog').close());
 $('detail-confirm').addEventListener('click', () => $('detail-dialog').close());
 $('detail-dialog').addEventListener('close', () => $('detail-confirm').removeAttribute('href'));
 refreshLanguage(); setView(view);
+
+export function clearUser() {
+  ++batch; ++currencyRequest; controller?.abort(); controller = null;
+  userId = null; items = []; history = []; started = false; errors = [];
+  displayCurrency = 'JPY'; exchangeRate = 1; currencyStatus = null;
+  $('currency').value = 'JPY'; $('keyword').value = ''; $('stop').hidden = true;
+  $('search').inert = true;
+  $('history-items').replaceChildren(); closeHistory();
+  $('detail-dialog').close(); $('detail-name').textContent = ''; $('detail-url').textContent = '';
+  $('detail-confirm').removeAttribute('href');
+  setStatus(''); renderErrors(); renderCurrencyStatus(); resetFilters(); validateSearch();
+}
+export function activateUser(id, request) {
+  clearUser(); userId = id; requestAPI = request;
+  history = readHistory(localStorage, userId); $('search').inert = false;
+  refreshLanguage();
+}

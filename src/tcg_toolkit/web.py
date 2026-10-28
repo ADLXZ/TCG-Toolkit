@@ -1,16 +1,27 @@
 """Local browser API; the existing searchers own upstream parsing."""
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.staticfiles import StaticFiles
 
 from . import (ChaosTCGSearcher, Game, LyceeSearcher, SearchParseError,
                SearchRequestError, WSRSearcher)
 from .external import CurrencyClient, CurrencyConfigError, CurrencyRequestError, TargetCurrency
 
-app = FastAPI(title="TCG Toolkit")
+from .auth.routes import router as auth_router, current_user, initialize_auth
+
+
+@asynccontextmanager
+async def lifespan(app):
+    initialize_auth(app)
+    yield
+
+
+app = FastAPI(title="TCG Toolkit", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
+app.include_router(auth_router)
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher}
 
 
@@ -19,7 +30,7 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/api/search")
+@app.get("/api/search", dependencies=[Depends(current_user)])
 def search(game: Game, keyword: Annotated[str, Query(min_length=1)],
            page: Annotated[int, Query(ge=1)] = 1):
     if not keyword.strip():
@@ -39,7 +50,7 @@ def search(game: Game, keyword: Annotated[str, Query(min_length=1)],
                                          "message": "Could not read the source results."}) from exc
 
 
-@app.get("/api/currency/convert")
+@app.get("/api/currency/convert", dependencies=[Depends(current_user)])
 def convert_currency(to: TargetCurrency, amount: Annotated[float, Query(ge=0, allow_inf_nan=False)] = 1):
     try:
         with CurrencyClient() as currency:

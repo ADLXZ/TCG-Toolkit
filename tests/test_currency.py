@@ -11,6 +11,14 @@ from tcg_toolkit.external import currency as currency_module
 
 
 @pytest.fixture(autouse=True)
+def authenticated_business_api():
+    from tcg_toolkit.auth.routes import current_user
+    app.dependency_overrides[current_user] = lambda: {"id": "test-user"}
+    yield
+    app.dependency_overrides.pop(current_user, None)
+
+
+@pytest.fixture(autouse=True)
 def isolated_cache(monkeypatch, tmp_path):
     monkeypatch.setenv("TCG_CURRENCY_CACHE", str(tmp_path / "currency.sqlite3"))
 

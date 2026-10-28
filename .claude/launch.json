@@ -5,7 +5,12 @@
       "name": "web",
       "runtimeExecutable": "venv/Scripts/python.exe",
       "runtimeArgs": ["-m", "uvicorn", "tcg_toolkit.web:app", "--app-dir", "src", "--port", "8765"],
-      "port": 8765
+      "port": 8765,
+      "env": {
+        "TCG_USER_DB": "build/preview-users.sqlite3",
+        "TCG_TRUSTED_ORIGINS": "http://localhost:8765,http://127.0.0.1:8765",
+        "TCG_COOKIE_SECURE": "false"
+      }
     }
   ]
 }

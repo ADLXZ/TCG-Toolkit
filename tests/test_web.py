@@ -8,6 +8,14 @@ from tcg_toolkit.web import app, SEARCHERS
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def authenticated_business_api():
+    from tcg_toolkit.auth.routes import current_user
+    app.dependency_overrides[current_user] = lambda: {"id": "test-user"}
+    yield
+    app.dependency_overrides.pop(current_user, None)
+
+
 def test_static_and_health():
     assert client.get('/api/health').json() == {'status': 'ok'}
     assert 'data-i18n="tcg_toolkit_search"' in client.get('/').text
