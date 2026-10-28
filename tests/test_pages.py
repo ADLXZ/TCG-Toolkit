@@ -13,7 +13,8 @@ def test_public_artifact(tmp_path):
     module.build(output, "https://api.example.com")
     assert 'https://api.example.com' in (output / "api-config.js").read_text()
     assert (output / ".nojekyll").exists()
-    assert all(p.suffix in {".html", ".css", ".js"} or p.name == ".nojekyll" for p in output.iterdir())
+    assert all(p.suffix in {".html", ".css", ".js", ".svg", ".png"} or p.name == ".nojekyll" for p in output.iterdir())
+    assert {"favicon.svg", "favicon-32.png", "apple-touch-icon.png"} <= {p.name for p in output.iterdir()}
     html = (output / "index.html").read_text(encoding="utf-8")
     for value in re.findall(r'(?:src|href)="([^"#]+)"', html):
         assert not value.startswith("/")
@@ -21,7 +22,7 @@ def test_public_artifact(tmp_path):
             assert (output / value.split("?")[0]).exists()
 
 
-LOCAL_REF = re.compile(r"""(?:(?:src|href)="|\bfrom\s+['"]|\bimport\s*\(\s*['"])\./([\w.-]+\.(?:js|css))([^"']*)""")
+LOCAL_REF = re.compile(r"""(?:(?:src|href)="|\bfrom\s+['"]|\bimport\s*\(\s*['"])\./([\w.-]+\.(?:js|css|svg|png))([^"']*)""")
 
 
 def test_every_local_reference_is_stamped(tmp_path):

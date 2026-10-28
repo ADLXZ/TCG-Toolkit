@@ -11,17 +11,20 @@ from urllib.parse import urlsplit
 # modules imported later (auth.js loads app.js after sign-in). Stamping every local
 # reference with a content hash gives each release fresh URLs. All references must
 # carry the same stamp, or the browser would load a module twice and split its state.
-HTML_REF = re.compile(r'((?:src|href)=")\./([\w.-]+\.(?:js|css))(")')
+HTML_REF = re.compile(r'((?:src|href)=")\./([\w.-]+\.(?:js|css|svg|png))(")')
+ASSETS = {".html", ".js", ".css", ".svg", ".png"}
 JS_REF = re.compile(r"""((?:\bfrom\s+|\bimport\s*\(\s*)(['"]))\./([\w.-]+\.js)(\2)""")
 
 
 def stamp(output):
-    files = sorted(p for p in output.iterdir() if p.suffix in {".html", ".js", ".css"})
-    digest = hashlib.sha256()
+    files = sorted(p for p in output.iterdir() if p.suffix in ASSETS)
+    digest = hashlib.sha256()  # icons are binary; hash bytes, rewrite only text files
     for path in files:
         digest.update(path.name.encode() + b"\0" + path.read_bytes())
     version = digest.hexdigest()[:12]
     for path in files:
+        if path.suffix not in {".html", ".js"}:
+            continue
         text = path.read_text(encoding="utf-8")
         if path.suffix == ".html":
             text = HTML_REF.sub(lambda m: f"{m[1]}./{m[2]}?v={version}{m[3]}", text)
@@ -37,7 +40,7 @@ def build(output, api):
         raise ValueError("API_BASE_URL must be an HTTPS origin")
     output.mkdir(parents=True, exist_ok=False)
     for source in Path("src/tcg_toolkit/static").iterdir():
-        if source.is_file() and source.suffix in {".html", ".js", ".css"}:
+        if source.is_file() and source.suffix in ASSETS:
             shutil.copy2(source, output / source.name)
     (output / "api-config.js").write_text("export const API_BASE_URL = " + json.dumps(api.rstrip("/")) + ";\n")
     version = stamp(output)
