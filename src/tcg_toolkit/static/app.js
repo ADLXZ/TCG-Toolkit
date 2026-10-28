@@ -5,6 +5,7 @@ import {loadResults, largeImageUrl} from './logic.js';
 import {createFilterPanel} from './filters.js';
 import {readHistory, appendHistory, saveHistory} from './history.js';
 import {fetchRate, formatPrice} from './currency.js';
+import {rarityTier, rarityDescription} from './rarities.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
 const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg", "ws": "ws", "pm": "pm"};
@@ -134,7 +135,8 @@ function stockBadge(item) {
 }
 function rarityBadge(item) {
   if (!item.rarity) return '';
-  const badge = el('span', 'rarity-tag', item.rarity); badge.title = t('rarity_value', {rarity: item.rarity});
+  const badge = el('span', `rarity-tag tier-${rarityTier(item.game, item.rarity)}`, item.rarity);
+  badge.title = rarityDescription(item.game, item.rarity, getLanguage()) ?? t('rarity_value', {rarity: item.rarity});
   return badge;
 }
 function cardImage(item) {

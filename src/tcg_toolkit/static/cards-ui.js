@@ -1,5 +1,6 @@
 import {createCards, filterCards, summarizeCards} from './cards.js';
 import {t, getLanguage} from './i18n.js';
+import {raritiesForGame, rarityCategories, findRarity, rarityTier, rarityDescription} from './rarities.js';
 const $ = id => document.getElementById(id);
 const fields = ['game', 'card_number', 'rarity', 'name', 'quantity', 'notes'];
 let filters = {query: '', game: '', rarity: ''}, pendingDelete = null;
@@ -8,6 +9,31 @@ function node(tag, text = '', className = '') {const el = document.createElement
 function icon(name) {return node('i', '', `bi ${name}`);}
 const number = value => value.toLocaleString(getLanguage());
 const editorOpen = () => $('card-dialog').open;
+function rarityOptions() {
+  const state = inventory.state, draft = state.draft;
+  const entries = raritiesForGame(draft.game), mapped = entries.length > 0;
+  const select = $('card-rarity'), custom = $('card-rarity-custom');
+  select.hidden = !mapped; select.disabled = !mapped || state.busy; select.required = mapped;
+  custom.hidden = mapped; custom.disabled = mapped || state.busy; custom.required = !mapped;
+  custom.value = draft.rarity;
+  const placeholder = node('option', t('cards_choose_rarity')); placeholder.value = '';
+  select.replaceChildren(placeholder);
+  for (const category of rarityCategories) {
+    const group = node('optgroup'); group.label = category;
+    for (const entry of entries.filter(entry => entry.category === category)) {
+      const option = node('option', `${entry.code} · ${getLanguage() === 'zh-CN' ? entry.chinese : entry.english}`);
+      option.value = entry.code; group.append(option);
+    }
+    if (group.children.length) select.append(group);
+  }
+  const match = findRarity(draft.game, draft.rarity);
+  const original = state.records.find(row => row.id === state.editing);
+  const legacy = original && original.game === draft.game && original.rarity === draft.rarity;
+  if (mapped && !match && draft.rarity && legacy) {
+    const option = node('option', draft.rarity); option.value = draft.rarity; select.append(option);
+  } else if (mapped) draft.rarity = match?.code ?? '';
+  select.value = draft.rarity;
+}
 function options(id, field) {
   const select = $(id), value = filters[field];
   const labels = new Map(inventory.state.records.map(row => [row[field].toLowerCase(), row[field]]));
@@ -43,6 +69,7 @@ function render() {
     input.disabled = state.busy;
   }
   $('card-dialog-title').textContent = t(state.editing ? 'cards_edit_title' : 'cards_add');
+  rarityOptions();
   $('cards-save').disabled = !state.ready || state.busy || state.loading;
   $('cards-save').querySelector('.bi').className = `bi ${state.busy ? 'bi-arrow-repeat spin' : 'bi-check-lg'}`;
   $('cards-cancel').disabled = state.busy;
@@ -65,7 +92,8 @@ function render() {
   $('cards-rows').replaceChildren(...rows.map(row => {
     const tr = document.createElement('tr');
     const cell = (child, className = '') => {const td = node('td', '', className); td.append(child); tr.append(td);};
-    cell(node('span', row.game, 'game-tag')); cell(row.card_number, 'mono'); cell(node('span', row.rarity, 'rarity-tag'));
+    cell(node('span', row.game, 'game-tag')); cell(row.card_number, 'mono'); const rarity = node('span', row.rarity, `rarity-tag tier-${rarityTier(row.game, row.rarity)}`);
+    rarity.title = rarityDescription(row.game, row.rarity, getLanguage()) ?? t('rarity_value', {rarity: row.rarity}); cell(rarity);
     cell(row.name, 'cards-name'); cell(number(row.quantity), `numeric${row.quantity ? '' : ' muted'}`); cell(row.notes, 'cards-notes');
     const actions = node('div', '', 'row-actions'), locked = state.busy || state.loading;
     actions.append(iconButton('bi-pencil', t('cards_edit'), () => openEditor(row.id), locked),
@@ -84,7 +112,9 @@ function confirmDelete(row) {
 }
 for (const field of fields) $('card-' + field).addEventListener('input', event => {
   inventory.state.draft[field] = field === 'quantity' ? (event.target.value === '' ? '' : Number(event.target.value)) : event.target.value;
+  if (field === 'game') rarityOptions();
 });
+$('card-rarity-custom').addEventListener('input', event => { inventory.state.draft.rarity = event.target.value; });
 $('cards-form').addEventListener('submit', async event => {
   event.preventDefault();
   await inventory.save();

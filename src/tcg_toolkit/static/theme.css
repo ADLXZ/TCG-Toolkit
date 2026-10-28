@@ -48,6 +48,15 @@
   --color-favorite: var(--gold-500);
   --color-favorite-hover: var(--gold-400);
 
+  /* Rarity badges (tiers from rarities.js) */
+  --rarity-normal: var(--color-primary);
+  --rarity-normal-text: var(--color-on-primary);
+  --rarity-rare: #e8b11c;
+  --rarity-rare-text: #3d2a00;
+  --rarity-special: #d7263d;
+  --rarity-special-text: var(--gray-0);
+  --rarity-sheen: linear-gradient(105deg, transparent 25%, color-mix(in srgb, var(--gray-0) 70%, transparent) 50%, transparent 75%);
+
   /* Effects */
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-focus) 15%, transparent);
   --shadow-sm: 0 1px 2px color-mix(in srgb, var(--gray-900) 12%, transparent);
