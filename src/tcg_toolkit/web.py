@@ -12,6 +12,7 @@ from . import (ChaosTCGSearcher, Game, LyceeSearcher, SearchParseError,
 from .external import CurrencyClient, CurrencyConfigError, CurrencyRequestError, TargetCurrency
 
 from .auth.routes import router as auth_router, current_user, initialize_auth
+from .favorites import router as favorites_router
 
 
 @asynccontextmanager
@@ -22,7 +23,16 @@ async def lifespan(app):
 
 app = FastAPI(title="TCG Toolkit", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(auth_router)
+app.include_router(favorites_router)
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher}
+
+
+@app.middleware('http')
+async def favorite_cache_policy(request, call_next):
+    response = await call_next(request)
+    if request.url.path == '/api/favorites' or request.url.path.startswith('/api/favorites/'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @app.get("/api/health")

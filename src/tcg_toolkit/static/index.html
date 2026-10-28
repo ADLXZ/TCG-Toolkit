@@ -13,7 +13,12 @@
 <body class="signed-out">
 <aside>
 <a class="brand" href="/"><i class="bi bi-stack"></i><span data-i18n="tcg"></span><span data-i18n="toolkit"></span></a>
-<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a></nav>
+<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span></a></nav>
+<div id="app-settings" class="sidebar-settings" hidden>
+<label class="setting" data-i18n-title="language"><i class="bi bi-globe2"></i><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label>
+<label class="setting" data-i18n-title="display_currency"><i class="bi bi-currency-exchange"></i><select id="currency" data-i18n-aria-label="display_currency"><option value="JPY" data-i18n="currency_jpy"></option><option value="CNY" data-i18n="currency_cny"></option><option value="CAD" data-i18n="currency_cad"></option></select></label>
+<span id="currency-status" role="status" aria-live="polite" hidden></span>
+</div>
 <div id="user-bar" class="sidebar-user" hidden>
 <a href="#account" id="account-link" class="user-link"><span class="avatar" id="user-avatar" aria-hidden="true"></span><span class="user-meta"><span id="current-username"></span><span class="user-sub" data-i18n="auth_account"></span></span></a>
 </div>
@@ -53,7 +58,7 @@
 </div>
 </main>
 <main id="search" hidden>
-<header><h1 data-i18n="search"></h1><label class="language-control"><span data-i18n="language"></span><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label><div class="currency-toolbar"><label class="language-control"><span data-i18n="display_currency"></span><select id="currency" data-i18n-aria-label="display_currency"><option value="JPY" data-i18n="currency_jpy"></option><option value="CNY" data-i18n="currency_cny"></option><option value="CAD" data-i18n="currency_cad"></option></select></label><span id="currency-status" role="status" aria-live="polite"></span></div></header>
+<header><h1 data-i18n="search"></h1></header>
 <section class="panel">
 <form id="search-form">
 <div class="search-line">
@@ -80,48 +85,65 @@
 <span class="count" id="counts">0 / 0</span>
 <span aria-live="polite" id="status" role="status"></span>
 </div>
-<div class="view-toggle" data-i18n-aria-label="view" role="group">
-<button class="icon-button" data-i18n-aria-label="list_view" data-i18n-title="list_view" data-view="list" type="button"><i class="bi bi-list-ul"></i></button>
-<button class="icon-button" data-i18n-aria-label="grid_view" data-i18n-title="grid_view" data-view="grid" type="button"><i class="bi bi-grid-3x3-gap"></i></button>
-</div>
+<div class="heading-actions"><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
 </div>
 <div id="errors" role="alert"></div>
-<div class="panel filters">
-<div class="filter-top">
-<h3><i class="bi bi-funnel"></i><span data-i18n="filters"></span></h3>
-<button class="text-button" id="reset" type="button"><i class="bi bi-arrow-counterclockwise"></i><span data-i18n="reset"></span></button>
-</div>
-<div class="filter-search input-icon">
-<i class="bi bi-search"></i>
-<input data-i18n-aria-label="find" data-i18n-placeholder="name_or_number" id="text-filter" type="search"/>
-</div>
-<div class="filter-grid">
-<label class="field"><span data-i18n="rarity"></span><select id="rarity"><option value="" data-i18n="all"></option></select></label>
-<label class="field"><span data-i18n="stock"></span><select id="stock"><option data-i18n="all" value=""></option><option data-i18n="in_stock" value="in_stock"></option><option data-i18n="out_of_stock" value="out_of_stock"></option><option data-i18n="unknown" value="unknown"></option></select></label>
-<label class="field"><span data-i18n="sort"></span><select id="sort"><option data-i18n="default" value="original"></option><option data-i18n="price_ascending" value="price:asc"></option><option data-i18n="price_descending" value="price:desc"></option><option data-i18n="name_a_z" value="name:asc"></option><option data-i18n="name_z_a" value="name:desc"></option><option data-i18n="number_ascending" value="card_number:asc"></option><option data-i18n="number_descending" value="card_number:desc"></option><option data-i18n="quantity_ascending" value="stock_quantity:asc"></option><option data-i18n="quantity_descending" value="stock_quantity:desc"></option></select></label>
-<div class="field price-field" role="group" data-i18n-aria-label="price_range">
-<div class="price-head"><span data-i18n="price_range"></span><output id="price-label"></output></div>
-<div class="range" id="price-range">
-<div class="range-track"><div class="range-fill" id="price-fill"></div></div>
-<input type="range" id="price-min" min="0" max="0" step="1" value="0" data-i18n-aria-label="min_price"/>
-<input type="range" id="price-max" min="0" max="0" step="1" value="0" data-i18n-aria-label="max_price"/>
-</div>
-</div>
-</div>
-<div class="chips" data-i18n-aria-label="games_to_show" role="group">
-<label class="chip"><input checked="" name="filter-game" type="checkbox" value="wsr"/><i class="bi bi-check-lg"></i><span data-i18n="wsr"></span></label>
-<label class="chip"><input checked="" name="filter-game" type="checkbox" value="lycee"/><i class="bi bi-check-lg"></i><span data-i18n="lycee"></span></label>
-<label class="chip"><input checked="" name="filter-game" type="checkbox" value="chaos"/><i class="bi bi-check-lg"></i><span data-i18n="chaostcg"></span></label>
-</div>
-</div>
+<div id="search-filters"></div>
 <div class="panel table-panel" id="list-view">
-<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="rows"></tbody></table></div>
 </div>
 <div class="card-grid" hidden="" id="grid-view"></div>
 <div class="empty" id="empty"><i class="bi bi-search"></i><h3 data-i18n="no_results"></h3></div>
 <div class="more-wrap"><button class="secondary" hidden="" id="more"><i class="bi bi-chevron-down"></i><span data-i18n="show_more"></span></button></div>
 </section>
 </main>
+<main id="favorites-panel" hidden>
+<header><h1 data-i18n="favorites"></h1></header>
+<section class="results">
+<div class="section-heading">
+<div class="heading-left"><h2 data-i18n="favorite_cards"></h2><span class="count" id="favorites-count" hidden></span><span id="favorites-status" role="status" aria-live="polite"></span></div>
+<div class="heading-actions"><button id="favorites-refresh" type="button" class="secondary compact"><i class="bi bi-arrow-clockwise"></i><span data-i18n="favorite_refresh_all"></span></button><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
+</div>
+<div class="progress" id="favorites-progress" hidden><div class="progress-bar" id="favorites-progress-bar"></div></div>
+<button id="favorites-retry" type="button" class="secondary" hidden><i class="bi bi-arrow-counterclockwise"></i><span data-i18n="favorite_retry"></span></button>
+<div id="favorites-filters"></div>
+<div class="panel table-panel" id="favorites-list">
+<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="favorites-rows"></tbody></table></div>
+</div>
+<div id="favorites-grid" class="card-grid" hidden></div>
+<div id="favorites-empty" class="empty" hidden><i class="bi bi-star"></i><h3></h3></div>
+</section>
+</main>
+<template id="filter-panel">
+<div class="panel filters">
+<div class="filter-top">
+<h3><i class="bi bi-funnel"></i><span data-i18n="filters"></span></h3>
+<button class="text-button" data-role="reset" type="button"><i class="bi bi-arrow-counterclockwise"></i><span data-i18n="reset"></span></button>
+</div>
+<div class="filter-search input-icon">
+<i class="bi bi-search"></i>
+<input data-i18n-aria-label="find" data-i18n-placeholder="name_or_number" data-role="text" type="search"/>
+</div>
+<div class="filter-grid">
+<label class="field"><span data-i18n="rarity"></span><select data-role="rarity"><option value="" data-i18n="all"></option></select></label>
+<label class="field"><span data-i18n="stock"></span><select data-role="stock"><option data-i18n="all" value=""></option><option data-i18n="in_stock" value="in_stock"></option><option data-i18n="out_of_stock" value="out_of_stock"></option><option data-i18n="unknown" value="unknown"></option></select></label>
+<label class="field"><span data-i18n="sort"></span><select data-role="sort"><option data-i18n="default" value="original"></option><option data-i18n="price_ascending" value="price:asc"></option><option data-i18n="price_descending" value="price:desc"></option><option data-i18n="name_a_z" value="name:asc"></option><option data-i18n="name_z_a" value="name:desc"></option><option data-i18n="number_ascending" value="card_number:asc"></option><option data-i18n="number_descending" value="card_number:desc"></option><option data-i18n="quantity_ascending" value="stock_quantity:asc"></option><option data-i18n="quantity_descending" value="stock_quantity:desc"></option></select></label>
+<div class="field price-field" role="group" data-i18n-aria-label="price_range">
+<div class="price-head"><span data-i18n="price_range"></span><output data-role="price-label"></output></div>
+<div class="range" data-role="price-range">
+<div class="range-track"><div class="range-fill" data-role="price-fill"></div></div>
+<input type="range" data-role="price-min" min="0" max="0" step="1" value="0" data-i18n-aria-label="min_price"/>
+<input type="range" data-role="price-max" min="0" max="0" step="1" value="0" data-i18n-aria-label="max_price"/>
+</div>
+</div>
+</div>
+<div class="chips" data-i18n-aria-label="games_to_show" role="group">
+<label class="chip"><input checked="" data-role="game" type="checkbox" value="wsr"/><i class="bi bi-check-lg"></i><span data-i18n="wsr"></span></label>
+<label class="chip"><input checked="" data-role="game" type="checkbox" value="lycee"/><i class="bi bi-check-lg"></i><span data-i18n="lycee"></span></label>
+<label class="chip"><input checked="" data-role="game" type="checkbox" value="chaos"/><i class="bi bi-check-lg"></i><span data-i18n="chaostcg"></span></label>
+</div>
+</div>
+</template>
 <dialog id="detail-dialog" aria-labelledby="detail-title" aria-describedby="detail-description">
 <h2 id="detail-title" data-i18n="detail_title"></h2>
 <p id="detail-description" data-i18n="detail_description"></p>

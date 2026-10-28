@@ -11,7 +11,7 @@ class UserStore:
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 1:
+            if version > 2:
                 raise RuntimeError("User database is newer than this application.")
             if version == 0:
                 db.execute("""CREATE TABLE users (
@@ -22,6 +22,14 @@ class UserStore:
                     expires_at INTEGER NOT NULL)""")
                 db.execute("CREATE INDEX sessions_expiry ON sessions(expires_at)")
                 db.execute("PRAGMA user_version = 1")
+            if version < 2:
+                db.execute("""CREATE TABLE favorites (
+                    id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
+                    game TEXT NOT NULL, product_url TEXT NOT NULL,
+                    snapshot TEXT NOT NULL, created_at INTEGER NOT NULL,
+                    refreshed_at INTEGER,
+                    UNIQUE(user_id, game, product_url))""")
+                db.execute("PRAGMA user_version = 2")
 
     @contextmanager
     def connect(self):
