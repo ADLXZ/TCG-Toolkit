@@ -1,0 +1,98 @@
+import sqlite3
+
+import pytest
+from fastapi.testclient import TestClient
+
+from tcg_toolkit.auth.store import UserStore
+from tcg_toolkit.web import app
+
+ORIGIN = 'https://testserver'
+CARD = dict(game='ws', card_number='ABC-001', rarity='SR', name='Card', quantity=2, notes='Mine')
+
+
+def login(client, name):
+    data = client.post('/api/auth/register', json=dict(username=name, password='password123', confirm_password='password123')).json()
+    client.headers['Authorization'] = 'Bearer ' + data['token']
+    return data['token']
+
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    monkeypatch.setenv('TCG_USER_DB', str(tmp_path / 'users.sqlite3'))
+    monkeypatch.setenv('TCG_TRUSTED_ORIGINS', ORIGIN)
+    with TestClient(app, base_url=ORIGIN, headers={'Origin': ORIGIN}) as client:
+        login(client, 'alice')
+        yield client
+
+
+def test_crud_duplicates_persistence(client):
+    response = client.post('/api/cards', json={**CARD, 'game': ' Ws ', 'name': ' Card '})
+    assert response.status_code == 201
+    row = response.json()
+    assert row['game'] == 'WS' and row['name'] == 'Card'
+    duplicate = client.post('/api/cards', json={**CARD, 'rarity': ' sr ', 'card_number': ' abc-001 '})
+    assert duplicate.status_code == 409 and duplicate.json()['detail']['id'] == row['id']
+    other = client.post('/api/cards', json={**CARD, 'game': 'Custom game'}).json()
+    assert client.put('/api/cards/' + other['id'], json=CARD).status_code == 409
+    edited = client.put('/api/cards/' + row['id'], json={**CARD, 'quantity': 0, 'notes': ''}).json()
+    assert edited['quantity'] == 0 and edited['notes'] == ''
+    assert [r['id'] for r in client.get('/api/cards').json()['items']] == [other['id'], row['id']]
+    with UserStore(app.state.auth.store.path).connect() as db:
+        assert db.execute('SELECT quantity FROM owned_cards WHERE id=?', (row['id'],)).fetchone()[0] == 0
+    assert client.request('DELETE', '/api/cards/' + row['id'], json={}).status_code == 204
+    assert client.request('DELETE', '/api/cards/' + row['id'], json={}).status_code == 404
+
+
+def test_user_isolation_and_guards(client):
+    alice_token = client.headers['Authorization']
+    saved = client.post('/api/cards', json=CARD).json()
+    login(client, 'bob')
+    assert client.get('/api/cards').json() == {'items': []}
+    for method in ['PUT', 'DELETE']:
+        assert client.request(method, '/api/cards/' + saved['id'], json=CARD).status_code == 404
+    assert client.post('/api/cards', json=CARD).status_code == 201
+    client.headers['Authorization'] = alice_token
+    assert client.get('/api/cards').json()['items'] == [saved]
+    for method, path in [('POST', ''), ('PUT', '/' + saved['id']), ('DELETE', '/' + saved['id'])]:
+        assert client.request(method, '/api/cards' + path, json=CARD, headers={'Origin': 'https://evil.test'}).status_code == 403
+        assert client.request(method, '/api/cards' + path, content='{}', headers={'Content-Type': 'text/plain'}).status_code == 415
+    client.headers.pop('Authorization')
+    for method, path in [('GET', ''), ('POST', ''), ('PUT', '/x'), ('DELETE', '/x')]:
+        response = client.request(method, '/api/cards' + path, json=CARD)
+        assert response.status_code == 401 and response.headers['cache-control'] == 'no-store'
+
+
+@pytest.mark.parametrize('field,value', [('game', ' '), ('name', ''), ('rarity', '\t'), ('card_number', ' '),
+    ('quantity', -1), ('quantity', 1.5), ('quantity', True), ('quantity', '2'), ('quantity', 9007199254740992)])
+def test_validation(client, field, value):
+    assert client.post('/api/cards', json={**CARD, field: value}).status_code == 422
+
+
+def test_unicode_keys_defaults_and_cors(client):
+    body = {**CARD, 'game': 'Straße', 'rarity': 'Rare'}
+    body.pop('quantity'); body.pop('notes')
+    saved = client.post('/api/cards', json=body).json()
+    assert saved['quantity'] == 1 and saved['notes'] == ''
+    assert client.post('/api/cards', json={**body, 'game': 'STRASSE'}).status_code == 409
+    response = client.options('/api/cards/x', headers={'Access-Control-Request-Method': 'PUT', 'Access-Control-Request-Headers': 'authorization,content-type'})
+    assert response.status_code == 200
+    assert 'PUT' in response.headers['access-control-allow-methods']
+
+
+def test_v2_migration_preserves_data(tmp_path):
+    path = tmp_path / 'v2.sqlite3'
+    with sqlite3.connect(path) as db:
+        db.executescript('''CREATE TABLE users (id TEXT PRIMARY KEY, username TEXT, password_hash TEXT, created_at INTEGER);
+            CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id TEXT, expires_at INTEGER);
+            CREATE TABLE favorites (id TEXT PRIMARY KEY, user_id TEXT, game TEXT, product_url TEXT, snapshot TEXT, created_at INTEGER, refreshed_at INTEGER);
+            INSERT INTO users VALUES ('u', 'alice', 'hash', 1);
+            INSERT INTO sessions VALUES ('token', 'u', 9999999999);
+            INSERT INTO favorites VALUES ('f', 'u', 'ws', 'url', '{}', 1, NULL);
+            PRAGMA user_version = 2;''')
+    for _ in range(2):
+        with UserStore(path).connect() as db:
+            assert db.execute('PRAGMA user_version').fetchone()[0] == 3
+            assert db.execute('SELECT username FROM users').fetchone()[0] == 'alice'
+            assert db.execute('SELECT token_hash FROM sessions').fetchone()[0] == 'token'
+            assert db.execute('SELECT id FROM favorites').fetchone()[0] == 'f'
+            assert db.execute('SELECT count(*) FROM owned_cards').fetchone()[0] == 0

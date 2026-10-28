@@ -1,3 +1,4 @@
+import {clearCards, activateCards} from './cards-ui.js';
 import {createFavorites, cardKey} from './favorites.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {loadResults, largeImageUrl} from './logic.js';
@@ -375,7 +376,7 @@ refreshLanguage(); setView(view);
 
 export function clearUser() {
   ++batch; ++currencyRequest; controller?.abort(); controller = null;
-  favorites.clear();
+  favorites.clear(); clearCards();
   userId = null; items = []; history = []; started = false; errors = [];
   displayCurrency = 'JPY'; exchangeRate = 1; currencyStatus = null;
   $('currency').value = 'JPY'; $('keyword').value = ''; $('stop').hidden = true;
@@ -388,6 +389,6 @@ export function clearUser() {
 export function activateUser(id, request) {
   clearUser(); userId = id; requestAPI = request;
   history = readHistory(localStorage, userId); $('search').inert = false;
-  favorites.activate(requestAPI);
+  favorites.activate(requestAPI); activateCards(requestAPI);
   refreshLanguage();
 }

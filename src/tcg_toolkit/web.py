@@ -15,6 +15,7 @@ from .external import CurrencyClient, CurrencyConfigError, CurrencyRequestError,
 
 from .auth.routes import router as auth_router, current_user, initialize_auth
 from .favorites import router as favorites_router
+from .cards import router as cards_router
 
 
 @asynccontextmanager
@@ -30,7 +31,7 @@ class BrowserCORS:
     async def __call__(self, scope, receive, send):
         origins = getattr(scope["app"].state, "auth_origins", set())
         await CORSMiddleware(self.app, allow_origins=list(origins),
-                             allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+                             allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                              allow_headers=["Authorization", "Content-Type"])(scope, receive, send)
 
 
@@ -38,13 +39,15 @@ app = FastAPI(title="TCG Toolkit", lifespan=lifespan, docs_url=None, redoc_url=N
 app.add_middleware(BrowserCORS)
 app.include_router(auth_router)
 app.include_router(favorites_router)
+app.include_router(cards_router)
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher, Game.WS: WSSearcher, Game.PM: PMSearcher}
 
 
 @app.middleware('http')
 async def browser_cache_policy(request, call_next):
     response = await call_next(request)
-    if request.url.path == '/api/favorites' or request.url.path.startswith('/api/favorites/'):
+    if any(request.url.path == path or request.url.path.startswith(path + '/')
+           for path in ('/api/favorites', '/api/cards')):
         response.headers['Cache-Control'] = 'no-store'
     elif not request.url.path.startswith('/api/'):
         # Static filenames are stable across releases; validate cached modules.

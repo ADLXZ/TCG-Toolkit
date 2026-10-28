@@ -5,18 +5,20 @@ const $ = id => document.getElementById(id);
 let user = null, searchApp = null, registering = false, errorKey = '';
 const api = createAuthenticatedRequest(() => signedOut('auth_expired'), apiRequest);
 function showPage() {
+  const cards = Boolean(user) && location.hash === '#cards';
+  $('cards-panel').hidden = !cards;
   const favorites = Boolean(user) && location.hash === '#favorites';
   $('favorites-panel').hidden = !favorites;
   const account = Boolean(user) && location.hash === '#account';
   document.body.classList.toggle('signed-out', !user);
   $('auth-panel').hidden = Boolean(user);
-  $('search').hidden = !user || account || favorites;
+  $('search').hidden = !user || account || favorites || cards;
   $('account-panel').hidden = !account;
   $('user-bar').hidden = !user;
   $('app-nav').hidden = !user;
   $('app-settings').hidden = !user;
   document.querySelectorAll('#app-nav a, #account-link').forEach(a => {
-    if (a.hash === (account ? '#account' : favorites ? '#favorites' : '#search')) a.setAttribute('aria-current', 'page');
+    if (a.hash === (cards ? '#cards' : account ? '#account' : favorites ? '#favorites' : '#search')) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
 }
@@ -68,7 +70,7 @@ async function signedIn(value) {
   $('current-username').textContent = user.username;
   $('account-username').textContent = user.username; setAvatar(user.username);
   $('auth-password').value = ''; $('auth-confirm-password').value = ''; $('auth-password').type = 'password'; errorKey = '';
-  if (!['#account', '#favorites'].includes(location.hash)) location.hash = '#search';
+  if (!['#account', '#favorites', '#cards'].includes(location.hash)) location.hash = '#search';
   showPage(); refresh();
 }
 function responseError(status) {

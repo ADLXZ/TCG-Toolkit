@@ -13,7 +13,7 @@
 <body class="signed-out">
 <aside>
 <a class="brand" href="./"><i class="bi bi-stack"></i><span data-i18n="tcg"></span><span data-i18n="toolkit"></span></a>
-<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span></a></nav>
+<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span></a><a href="#cards"><i class="bi bi-collection"></i><span data-i18n="cards_title"></span></a></nav>
 <div id="app-settings" class="sidebar-settings" hidden>
 <label class="setting" data-i18n-title="language"><i class="bi bi-globe2"></i><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label>
 <label class="setting" data-i18n-title="display_currency"><i class="bi bi-currency-exchange"></i><select id="currency" data-i18n-aria-label="display_currency"><option value="JPY" data-i18n="currency_jpy"></option><option value="CNY" data-i18n="currency_cny"></option><option value="CAD" data-i18n="currency_cad"></option></select></label>
@@ -56,6 +56,35 @@
 <section class="panel account-card"><span class="account-icon"><i class="bi bi-shield-lock"></i></span><h2 data-i18n="auth_security"></h2><span class="soon" data-i18n="auth_coming"></span></section>
 <section class="panel account-card"><span class="account-icon"><i class="bi bi-sliders"></i></span><h2 data-i18n="auth_preferences"></h2><span class="soon" data-i18n="auth_coming"></span></section>
 </div>
+</main>
+<main id="cards-panel" hidden>
+<header><h1 data-i18n="cards_title"></h1></header>
+<section id="cards-stats" class="panel cards-summary" hidden>
+<div class="stat-tiles">
+<div class="stat-tile"><span class="stat-label" data-i18n="cards_kinds"></span><span class="stat-value" id="cards-kinds"></span></div>
+<div class="stat-tile"><span class="stat-label" data-i18n="cards_quantity_total"></span><span class="stat-value" id="cards-quantity-total"></span></div>
+</div>
+<div class="stat-groups">
+<div><h3 data-i18n="cards_by_game"></h3><ul class="stat-chips" id="cards-by-game"></ul></div>
+<div><h3 data-i18n="cards_by_rarity"></h3><ul class="stat-chips" id="cards-by-rarity"></ul></div>
+</div>
+</section>
+<section class="results">
+<div class="section-heading">
+<div class="heading-left"><h2 data-i18n="cards_list"></h2><span class="count" id="cards-count" hidden></span><span id="cards-status" role="status" aria-live="polite"></span></div>
+<div class="heading-actions"><button id="cards-add" type="button" class="compact" disabled><i class="bi bi-plus-lg"></i><span data-i18n="cards_add"></span></button></div>
+</div>
+<button id="cards-retry" type="button" class="secondary" hidden><i class="bi bi-arrow-counterclockwise"></i><span data-i18n="favorite_retry"></span></button>
+<div class="panel filters" id="cards-filters" hidden>
+<div class="filter-search input-icon"><i class="bi bi-search"></i><input id="cards-query" type="search" data-i18n-aria-label="cards_search" data-i18n-placeholder="cards_search"/></div>
+<div class="cards-filter-grid">
+<label class="field"><span data-i18n="game"></span><select id="cards-game-filter"></select></label>
+<label class="field"><span data-i18n="rarity"></span><select id="cards-rarity-filter"></select></label>
+</div>
+</div>
+<div class="panel table-panel" id="cards-table" hidden><div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="number"></th><th data-i18n="rarity"></th><th data-i18n="name"></th><th class="numeric" data-i18n="cards_quantity"></th><th data-i18n="cards_notes"></th><th class="action-col"><span class="sr-only" data-i18n="cards_actions"></span></th></tr></thead><tbody id="cards-rows"></tbody></table></div></div>
+<div id="cards-empty" class="empty" hidden><i class="bi bi-collection"></i><h3></h3></div>
+</section>
 </main>
 <main id="search" hidden>
 <header><h1 data-i18n="search"></h1></header>
@@ -148,6 +177,34 @@
 </div>
 </div>
 </template>
+<dialog id="card-dialog" class="form-dialog" aria-labelledby="card-dialog-title">
+<form id="cards-form">
+<div class="dialog-head"><h2 id="card-dialog-title"></h2><button type="button" id="card-dialog-close" class="icon-button" data-i18n-aria-label="close" data-i18n-title="close"><i class="bi bi-x-lg"></i></button></div>
+<div class="cards-form-grid">
+<label class="field"><span data-i18n="game"></span><input id="card-game" required type="text" list="card-games" autocomplete="off"/></label>
+<label class="field"><span data-i18n="number"></span><input id="card-card_number" required type="text" autocomplete="off"/></label>
+<label class="field"><span data-i18n="rarity"></span><input id="card-rarity" required type="text" autocomplete="off"/></label>
+<label class="field"><span data-i18n="cards_quantity"></span><input id="card-quantity" required type="number" min="0" step="1" max="9007199254740991" value="1"/></label>
+<label class="field wide"><span data-i18n="name"></span><input id="card-name" required type="text" autocomplete="off"/></label>
+<label class="field wide"><span data-i18n="cards_notes"></span><textarea id="card-notes" rows="3"></textarea></label>
+</div>
+<datalist id="card-games"><option value="WS"></option><option value="WSR"></option><option value="PM"></option><option value="Lycee"></option><option value="ChaosTCG"></option></datalist>
+<p id="card-dialog-error" class="dialog-error" role="alert"></p>
+<div class="dialog-actions">
+<button id="cards-existing" type="button" class="text-button dialog-existing" hidden><i class="bi bi-pencil"></i><span data-i18n="cards_existing"></span></button>
+<button id="cards-cancel" type="button" class="secondary" data-i18n="detail_cancel"></button>
+<button id="cards-save" type="submit"><i class="bi bi-check-lg"></i><span data-i18n="cards_save"></span></button>
+</div>
+</form>
+</dialog>
+<dialog id="cards-delete-dialog" class="form-dialog confirm-dialog" aria-labelledby="cards-delete-title" aria-describedby="cards-delete-message">
+<div class="dialog-head"><h2 id="cards-delete-title" data-i18n="cards_delete"></h2></div>
+<p id="cards-delete-message"></p>
+<div class="dialog-actions">
+<button id="cards-delete-cancel" type="button" class="secondary" autofocus data-i18n="detail_cancel"></button>
+<button id="cards-delete-confirm" type="button"><i class="bi bi-trash3"></i><span data-i18n="cards_delete"></span></button>
+</div>
+</dialog>
 <dialog id="image-dialog" class="image-dialog" aria-labelledby="preview-name">
 <button type="button" id="preview-close" class="icon-button preview-close" data-i18n-aria-label="close" data-i18n-title="close"><i class="bi bi-x-lg"></i></button>
 <figure><div class="preview-frame"><img id="preview-image" alt=""/><i class="bi bi-arrow-repeat spin preview-spinner" aria-hidden="true"></i></div>

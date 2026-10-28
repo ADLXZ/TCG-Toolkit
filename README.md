@@ -12,8 +12,9 @@
    右上角可在列表和网格视图之间切换。
 4. **收藏**：点击卡牌上的 ☆ 收藏，在侧边栏“我的收藏”中查看。收藏页同样支持筛选和两种视图，
    可单张刷新或“刷新全部”以获取最新价格和库存；刷新失败时保留原信息。
-5. **语言与货币**：侧边栏底部切换 English / 简体中文，以及显示货币 JPY / CNY / CAD（保留日元原价）。
-6. **用户中心**：点击侧边栏左下角的头像进入，可查看账户信息并退出登录。
+5. **我的卡牌**：手动录入游戏（支持自定义）、编号、稀有度、名称、拥有量和备注；可编辑或确认删除。相同游戏、编号和稀有度不重复建档。按名称／编号搜索，按游戏／稀有度筛选，统计跟随当前筛选；拥有量为 0 的记录保留但不计入卡片种类数。数据仅当前账户可见。
+6. **语言与货币**：侧边栏底部切换 English / 简体中文，以及显示货币 JPY / CNY / CAD（保留日元原价）。
+7. **用户中心**：点击侧边栏左下角的头像进入，可查看账户信息并退出登录。
 
 点击卡名会在新标签页打开游游亭的商品页。
 
@@ -49,7 +50,7 @@ docker compose start           # 再次启动
 docker compose up -d --build   # 更新代码后重建
 ```
 
-用户、收藏和汇率数据保存在 `currency-data` 数据卷中，重建镜像不会丢失。备份时先 `docker compose stop web`，
+用户、收藏、个人卡牌和汇率数据保存在 `currency-data` 数据卷中，重建镜像不会丢失。备份时先 `docker compose stop web`，
 复制数据卷内容后再 `docker compose start web`；不要删除该数据卷。
 
 如果 Windows 占用了 8000 端口，在 `.env` 中设置 `TCG_PORT=18080`，并同步把 `TCG_TRUSTED_ORIGINS`
@@ -77,7 +78,7 @@ uvicorn tcg_toolkit.web:app --app-dir src --port 8000 --env-file .env
 | `TCG_PORT` | Docker 映射到本机的端口 | `8000` |
 | `RAPIDAPI_KEY` | 汇率接口密钥；不填时只能显示日元 | 空 |
 | `TCG_SEARCH_PROXY_URL` | 搜索 HTML 转发接口；显式设为空可直连 | `http://62.234.212.90:8080/proxy` |
-| `TCG_USER_DB` | 用户与收藏数据库路径（直接运行时） | `data/users.sqlite3` |
+| `TCG_USER_DB` | 用户、收藏与个人卡牌数据库路径（直接运行时） | `data/users.sqlite3` |
 | `TCG_CURRENCY_CACHE` | 汇率缓存路径（直接运行时） | `data/currency.sqlite3` |
 | `TCG_PROXY_IPS` | 受信任的反向代理来源 IP，不要设为 `*` | `127.0.0.1` |
 | `TCG_SUBNET` | Docker 网络子网，与本地网络冲突时修改 | `10.203.0.0/24` |

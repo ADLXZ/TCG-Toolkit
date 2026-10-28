@@ -34,7 +34,7 @@ def test_register_session_logout_login(client):
         digest = db.execute("SELECT token_hash FROM sessions").fetchone()[0]
         assert encoded.startswith("$argon2id$") and BODY["password"] not in encoded
         assert digest == token_hash(token) and token != digest
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
     assert AuthService(UserStore(store.path)).current_user(token) == user
     assert client.post("/api/auth/logout", json={}).status_code == 204
     assert app.state.auth.current_user(token) is None
