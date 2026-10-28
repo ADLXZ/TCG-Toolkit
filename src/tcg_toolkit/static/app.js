@@ -125,8 +125,10 @@ function cardLink(item, className = '') {
 }
 function stockBadge(item) {
   const badge = el('span', `badge ${item.stock_status}`);
+  // The source shows ◯ instead of a count when there are 10 or more in stock.
+  const quantity = item.stock_quantity ?? (item.stock_status === 'in_stock' ? '10+' : null);
   badge.append(icon(stockIcons[item.stock_status]),
-    t(stockKeys[item.stock_status]) + (item.stock_quantity === null ? '' : ` (${item.stock_quantity})`));
+    t(stockKeys[item.stock_status]) + (quantity === null ? '' : ` (${quantity})`));
   return badge;
 }
 function rarityBadge(item) {

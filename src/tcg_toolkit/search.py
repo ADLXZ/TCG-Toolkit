@@ -9,6 +9,7 @@ import httpx
 from bs4 import BeautifulSoup, Tag
 
 from .errors import SearchPaginationError, SearchParseError, SearchRequestError
+from .external.search_proxy import SearchProxyClient
 from .models import Game, SearchItem, SearchPage, StockStatus
 
 
@@ -27,14 +28,14 @@ class BaseSearcher:
     game: Game
     search_path: str
 
-    def __init__(self, *, client: httpx.Client | None = None,
+    def __init__(self, *, client: httpx.Client | SearchProxyClient | None = None,
                  timeout: float = 30.0, page_interval: float = 1.0):
         if timeout <= 0 or page_interval < 0:
             raise ValueError("timeout must be positive and page_interval non-negative")
         self.timeout = timeout
         self.page_interval = page_interval
         self._owns_client = client is None
-        self._client = client if client is not None else httpx.Client(follow_redirects=True)
+        self._client = client if client is not None else SearchProxyClient()
 
     def __enter__(self):
         return self

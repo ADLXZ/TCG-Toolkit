@@ -3,6 +3,7 @@ services:
     build: .
     environment:
       RAPIDAPI_KEY: "${RAPIDAPI_KEY:-}"
+      TCG_SEARCH_PROXY_URL: "${TCG_SEARCH_PROXY_URL-http://62.234.212.90:8080/proxy}"
       TCG_CURRENCY_CACHE: /app/data/currency.sqlite3
       TCG_USER_DB: /app/data/users.sqlite3
       TCG_TRUSTED_ORIGINS: "${TCG_TRUSTED_ORIGINS:-}"

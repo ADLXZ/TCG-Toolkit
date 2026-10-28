@@ -42,10 +42,13 @@ SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: Chaos
 
 
 @app.middleware('http')
-async def favorite_cache_policy(request, call_next):
+async def browser_cache_policy(request, call_next):
     response = await call_next(request)
     if request.url.path == '/api/favorites' or request.url.path.startswith('/api/favorites/'):
         response.headers['Cache-Control'] = 'no-store'
+    elif not request.url.path.startswith('/api/'):
+        # Static filenames are stable across releases; validate cached modules.
+        response.headers['Cache-Control'] = 'no-cache'
     return response
 
 

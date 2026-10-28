@@ -55,6 +55,16 @@ def test_validation_and_errors(client):
     assert client.post("/api/auth/register", json={**BODY, "password": "short"}).status_code == 422
 
 
+def test_browser_assets_revalidate_after_upgrade(client):
+    for path in ('/', '/auth.js', '/api.js', '/auth-client.js', '/app.js'):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers['Cache-Control'] == 'no-cache'
+        cached = client.get(path, headers={'If-None-Match': response.headers['etag']})
+        assert cached.status_code == 304
+        assert cached.headers['Cache-Control'] == 'no-cache'
+
+
 def test_anonymous_cannot_call_upstream(client, monkeypatch):
     from tcg_toolkit.web import SEARCHERS
     from tcg_toolkit.external import CurrencyClient

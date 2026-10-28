@@ -33,8 +33,8 @@ production environment Secrets：
 - DEPLOY_KNOWN_HOSTS：已验证的 99.79.33.22 host key 条目；可以从本机已信任的 known_hosts 提取。
 
 工作流通过 sudo -n python3 执行服务器部署脚本，使用当前 ubuntu 已有的免密码 sudo 权限。
-私有 GHCR 镜像需提前在服务器执行 `sudo docker login ghcr.io`，用具有 read:packages 权限的凭据。
-也可将首次构建的 GHCR 包设为 public 后重跑后端部署。不要将 RapidAPI Key 放入前端或 GitHub Variables。
+backend job 使用 packages:read 的临时 GITHUB_TOKEN，经 SSH 标准输入执行服务器端 `sudo docker login ghcr.io`，每次部署刷新认证，无需长期 PAT 或公开镜像。
+令牌随工作流结束失效；如包未继承仓库权限，应在包设置的 Manage Actions access 中给本仓库 Read 权限。不要将 RapidAPI Key 放入前端或 GitHub Variables。
 如果此前禁用了 Test and release，设置完成后重新启用。推送 main 自动运行，也可在 main 手动运行。
 提交与推送由用户执行，本次未自动推送。
 
