@@ -5,6 +5,8 @@ from enum import StrEnum
 
 
 class Game(StrEnum):
+    WS = "ws"
+    PM = "pm"
     WSR = "wsr"
     LYCEE = "lycee"
     CHAOS = "chaos"

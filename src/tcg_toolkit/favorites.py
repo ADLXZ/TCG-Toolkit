@@ -34,7 +34,7 @@ class CardSnapshot(BaseModel):
         if not self.name.strip() or not self.card_number.strip():
             raise ValueError('Name and card number must not be blank')
         url = urlsplit(self.product_url)
-        code = {Game.WSR: 'wsr', Game.LYCEE: 'lo', Game.CHAOS: 'chaos'}[self.game]
+        code = {Game.WSR: 'wsr', Game.LYCEE: 'lo', Game.CHAOS: 'chaos', Game.WS: 'ws', Game.PM: 'pm'}[self.game]
         prefix = f'/sell/{code}/card/'
         if (url.scheme != 'https' or url.netloc != 'yuyu-tei.jp'
                 or not url.path.startswith(prefix) or not url.path[len(prefix):]

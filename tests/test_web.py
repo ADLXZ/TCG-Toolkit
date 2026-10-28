@@ -60,3 +60,11 @@ def test_errors(kind, status, monkeypatch):
     assert response.status_code == status
     assert 'message' in response.json()['detail']
     assert 'internal detail' not in response.text
+
+
+@pytest.mark.parametrize("game", ["ws", "pm"])
+def test_new_game_controls(game):
+    from bs4 import BeautifulSoup
+    page = BeautifulSoup(client.get('/').text, 'html.parser')
+    assert page.select_one(f'input[name="source"][value="{game}"][checked]')
+    assert page.select_one(f'input[data-role="game"][value="{game}"][checked]')

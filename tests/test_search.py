@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from tcg_toolkit import (
     ChaosTCGSearcher, Game, LyceeSearcher, SearchPaginationError,
-    SearchParseError, SearchRequestError, StockStatus, WSRSearcher,
+    SearchParseError, SearchRequestError, StockStatus, WSRSearcher, WSSearcher, PMSearcher,
 )
 
 
@@ -242,3 +242,20 @@ def test_rarity_group_and_missing(rarity):
         heading = soup.new_tag('h3'); span = soup.new_tag('span'); span.string = rarity
         heading.append(span); soup.select_one('.cards-list').insert(0, heading)
         assert searcher.parse_rarity(card, 'OS01/R01-023A') == rarity
+
+
+@pytest.mark.parametrize("cls,game,number,price,rarity", [
+    (WSSearcher, Game.WS, "AMG/W121-016EX", 59800, "SEC+"),
+    (PMSearcher, Game.PM, "01-011a", 3980, "SP"),
+])
+def test_ws_pm_real_pages(cls, game, number, price, rarity):
+    calls = []
+    with client_for(fixture(game.value + "_1"), calls) as client, cls(client=client) as searcher:
+        result = searcher.search_page("01")
+    item = result.items[0]
+    assert (item.game, item.card_number, item.price, item.rarity) == (game, number, price, rarity)
+    assert item.name and item.image_url
+    assert item.product_url.startswith(f"https://yuyu-tei.jp/sell/{game.value}/card/")
+    assert calls[0].url.path == f"/sell/{game.value}/s/search"
+    assert result.next_page == 2
+    assert result.to_dict()["items"][0]["game"] == game.value

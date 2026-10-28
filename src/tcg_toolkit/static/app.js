@@ -6,7 +6,7 @@ import {readHistory, appendHistory, saveHistory} from './history.js';
 import {fetchRate, formatPrice} from './currency.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
-const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg"};
+const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg", "ws": "ws", "pm": "pm"};
 const gameLabel = game => t(gameKeys[game]);
 let items = [], limit = 100, controller = null, batch = 0, started = false;
 const stockKeys = {"in_stock": "in_stock", "out_of_stock": "out_of_stock", "unknown": "unknown"};

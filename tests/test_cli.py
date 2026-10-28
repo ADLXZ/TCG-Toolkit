@@ -17,7 +17,7 @@ def calls(monkeypatch):
             return SearchPage([], keyword, page, None)
         def iter_pages(self, keyword, *, start_page):
             yield self.search_page(keyword, page=start_page)
-    for name in ("WSRSearcher", "LyceeSearcher", "ChaosTCGSearcher"):
+    for name in ("WSRSearcher", "LyceeSearcher", "ChaosTCGSearcher", "WSSearcher", "PMSearcher"):
         monkeypatch.setattr(cli, name, Fake)
     return calls
 
@@ -61,3 +61,15 @@ def test_table_real_items(capsys):
     assert "OS01/R01-023A" in output and "548,000" in output
     assert "Out of stock (0)" in output and "Name" in output
     assert cli._width("中文AB") == 6
+
+
+@pytest.mark.parametrize("game", ["ws", "pm"])
+def test_new_games_legacy(game, calls, capsys):
+    assert cli.main([game, "01", "--clean"]) == 0
+    assert f"{game} | 0 results" in capsys.readouterr().out
+    assert calls == [("01", 1)]
+
+
+def test_new_games_combined(calls, capsys):
+    assert cli.main(["01", "-g", "ws", "-g", "pm"]) == 0
+    assert [json.loads(line)["game"] for line in capsys.readouterr().out.splitlines()] == ["ws", "pm"]

@@ -15,7 +15,7 @@ ORIGIN = 'https://testserver'
 
 
 def card(game=Game.WSR):
-    code = {Game.WSR: 'wsr', Game.LYCEE: 'lo', Game.CHAOS: 'chaos'}[game]
+    code = {Game.WSR: 'wsr', Game.LYCEE: 'lo', Game.CHAOS: 'chaos', Game.WS: 'ws', Game.PM: 'pm'}[game]
     return SearchItem(game, 'Card', 'ABC-001', 100, 'JPY', StockStatus.IN_STOCK,
                       2, '2', f'https://yuyu-tei.jp/sell/{code}/card/set/001')
 

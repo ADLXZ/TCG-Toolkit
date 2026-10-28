@@ -194,3 +194,13 @@ class LyceeSearcher(BaseSearcher):
 class ChaosTCGSearcher(BaseSearcher):
     game = Game.CHAOS
     search_path = "/sell/chaos/s/search"
+
+
+class WSSearcher(BaseSearcher):
+    game = Game.WS
+    search_path = "/sell/ws/s/search"
+
+
+class PMSearcher(BaseSearcher):
+    game = Game.PM
+    search_path = "/sell/pm/s/search"
