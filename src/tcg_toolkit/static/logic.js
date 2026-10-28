@@ -2,6 +2,7 @@ export function selectItems(items, filters) {
   const text = filters.text.trim().toLocaleLowerCase();
   const result = items.filter(item => filters.games.includes(item.game)
     && (!filters.stock || item.stock_status === filters.stock)
+    && (!filters.rarity || (filters.rarity === '__unknown__' ? !item.rarity : item.rarity === filters.rarity))
     && (filters.min === null || item.price >= filters.min)
     && (filters.max === null || item.price <= filters.max)
     && (!text || `${item.name} ${item.card_number}`.toLocaleLowerCase().includes(text)));
@@ -34,4 +35,21 @@ export async function loadResults({games, keyword, signal, fetchPage, onPage, on
     if (queue.length && !signal.aborted) await wait(signal);
   }
   return failed;
+}
+
+// Price slider positions are indexes into the distinct loaded prices, so skewed
+// price lists stay usable; a thumb at either end means "no limit".
+export function priceSteps(items) {
+  return [...new Set(items.map(item => item.price))].sort((a, b) => a - b);
+}
+export function sliderIndex(steps, value, edge) {
+  const last = Math.max(steps.length - 1, 0);
+  if (value === null) return edge === 'min' ? 0 : last;
+  if (edge === 'min') { const index = steps.findIndex(price => price >= value); return index === -1 ? last : index; }
+  const index = steps.findLastIndex(price => price <= value);
+  return index === -1 ? 0 : index;
+}
+export function sliderBound(steps, index, edge) {
+  if (steps.length < 2 || index <= 0 && edge === 'min' || index >= steps.length - 1 && edge === 'max') return null;
+  return steps[index];
 }

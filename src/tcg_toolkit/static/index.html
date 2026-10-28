@@ -16,7 +16,7 @@
 <nav><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a></nav>
 </aside>
 <main id="search">
-<header><h1 data-i18n="search"></h1><label class="language-control"><span data-i18n="language"></span><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label></header>
+<header><h1 data-i18n="search"></h1><label class="language-control"><span data-i18n="language"></span><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label><div class="currency-toolbar"><label class="language-control"><span data-i18n="display_currency"></span><select id="currency" data-i18n-aria-label="display_currency"><option value="JPY" data-i18n="currency_jpy"></option><option value="CNY" data-i18n="currency_cny"></option><option value="CAD" data-i18n="currency_cad"></option></select></label><span id="currency-status" role="status" aria-live="polite"></span></div></header>
 <section class="panel">
 <form id="search-form">
 <div class="search-line">
@@ -36,6 +36,7 @@
 </form>
 </section>
 <section class="results">
+
 <div class="section-heading">
 <div class="heading-left">
 <h2 data-i18n="results"></h2>
@@ -53,22 +54,31 @@
 <h3><i class="bi bi-funnel"></i><span data-i18n="filters"></span></h3>
 <button class="text-button" id="reset" type="button"><i class="bi bi-arrow-counterclockwise"></i><span data-i18n="reset"></span></button>
 </div>
+<div class="filter-search input-icon">
+<i class="bi bi-search"></i>
+<input data-i18n-aria-label="find" data-i18n-placeholder="name_or_number" id="text-filter" type="search"/>
+</div>
 <div class="filter-grid">
-<label><span data-i18n="find"></span><input data-i18n-placeholder="name_or_number" id="text-filter"/></label>
-<label><span data-i18n="stock"></span><select id="stock"><option data-i18n="all" value=""></option><option data-i18n="in_stock" value="in_stock"></option><option data-i18n="out_of_stock" value="out_of_stock"></option><option data-i18n="unknown" value="unknown"></option></select></label>
-<label><span data-i18n="min_price"></span><input data-i18n-placeholder="zero_price" id="min" min="0" step="1" type="number"/></label>
-<label><span data-i18n="max_price"></span><input data-i18n-placeholder="unlimited_price" id="max" min="0" step="1" type="number"/></label>
-<label><span data-i18n="sort"></span><select id="sort"><option data-i18n="default" value="original"></option><option data-i18n="price_ascending" value="price:asc"></option><option data-i18n="price_descending" value="price:desc"></option><option data-i18n="name_a_z" value="name:asc"></option><option data-i18n="name_z_a" value="name:desc"></option><option data-i18n="number_ascending" value="card_number:asc"></option><option data-i18n="number_descending" value="card_number:desc"></option><option data-i18n="quantity_ascending" value="stock_quantity:asc"></option><option data-i18n="quantity_descending" value="stock_quantity:desc"></option></select></label>
+<label class="field"><span data-i18n="rarity"></span><select id="rarity"><option value="" data-i18n="all"></option></select></label>
+<label class="field"><span data-i18n="stock"></span><select id="stock"><option data-i18n="all" value=""></option><option data-i18n="in_stock" value="in_stock"></option><option data-i18n="out_of_stock" value="out_of_stock"></option><option data-i18n="unknown" value="unknown"></option></select></label>
+<label class="field"><span data-i18n="sort"></span><select id="sort"><option data-i18n="default" value="original"></option><option data-i18n="price_ascending" value="price:asc"></option><option data-i18n="price_descending" value="price:desc"></option><option data-i18n="name_a_z" value="name:asc"></option><option data-i18n="name_z_a" value="name:desc"></option><option data-i18n="number_ascending" value="card_number:asc"></option><option data-i18n="number_descending" value="card_number:desc"></option><option data-i18n="quantity_ascending" value="stock_quantity:asc"></option><option data-i18n="quantity_descending" value="stock_quantity:desc"></option></select></label>
+<div class="field price-field" role="group" data-i18n-aria-label="price_range">
+<div class="price-head"><span data-i18n="price_range"></span><output id="price-label"></output></div>
+<div class="range" id="price-range">
+<div class="range-track"><div class="range-fill" id="price-fill"></div></div>
+<input type="range" id="price-min" min="0" max="0" step="1" value="0" data-i18n-aria-label="min_price"/>
+<input type="range" id="price-max" min="0" max="0" step="1" value="0" data-i18n-aria-label="max_price"/>
+</div>
+</div>
 </div>
 <div class="chips" data-i18n-aria-label="games_to_show" role="group">
 <label class="chip"><input checked="" name="filter-game" type="checkbox" value="wsr"/><i class="bi bi-check-lg"></i><span data-i18n="wsr"></span></label>
 <label class="chip"><input checked="" name="filter-game" type="checkbox" value="lycee"/><i class="bi bi-check-lg"></i><span data-i18n="lycee"></span></label>
 <label class="chip"><input checked="" name="filter-game" type="checkbox" value="chaos"/><i class="bi bi-check-lg"></i><span data-i18n="chaostcg"></span></label>
 </div>
-<p class="error" id="filter-error" role="alert"></p>
 </div>
 <div class="panel table-panel" id="list-view">
-<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th></tr></thead><tbody id="rows"></tbody></table></div>
 </div>
 <div class="card-grid" hidden="" id="grid-view"></div>
 <div class="empty" id="empty"><i class="bi bi-search"></i><h3 data-i18n="no_results"></h3></div>

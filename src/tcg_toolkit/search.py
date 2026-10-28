@@ -123,7 +123,21 @@ class BaseSearcher:
             stock_status=stock_status, stock_quantity=stock_quantity,
             stock_text=stock_text, product_url=urljoin(url, link["href"]),
             image_url=image_url,
+            rarity=self.parse_rarity(card, number),
         )
+
+    def parse_rarity(self, card: Tag, number: str) -> str | None:
+        group = card.find_parent(class_='cards-list')
+        label = _text(group.select_one('h3 span')) if group else ''
+        if label:
+            return label
+        image = card.select_one('.product-img img')
+        alt = str(image.get('alt', '')).strip() if image else ''
+        if alt.startswith(number + ' '):
+            token = alt[len(number):].strip().split(maxsplit=1)[0:1]
+            if token and re.fullmatch(r'[A-Za-z0-9+★☆/-]+', token[0]):
+                return token[0]
+        return None
 
     def parse_stock(self, text: str) -> tuple[StockStatus, int | None]:
         value = re.sub(r"^在庫\s*[:：]\s*", "", text).strip()

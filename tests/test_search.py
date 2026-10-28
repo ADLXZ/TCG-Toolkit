@@ -222,3 +222,23 @@ def test_missing_and_relative_image(src, expected):
         item = searcher.search_page("OS01").items[0]
     assert item.image_url == expected
     assert item.name and item.price == 548000
+
+
+@pytest.mark.parametrize("source,cls,expected", [("wsr_1", WSRSearcher, "AGR"), ("lo_1", LyceeSearcher, "SSP"), ("chaos_1", ChaosTCGSearcher, "SP")])
+def test_rarity_from_image_alt(source, cls, expected):
+    with client_for(fixture(source)) as client, cls(client=client) as searcher:
+        item = searcher.search_page("x").items[0]
+    assert item.rarity == expected
+    assert item.to_dict()["rarity"] == expected
+
+
+@pytest.mark.parametrize("rarity", ["SP", "SR", "R", "C"])
+def test_rarity_group_and_missing(rarity):
+    soup = BeautifulSoup(fixture("wsr_1"), "html.parser")
+    card = soup.select_one('.card-product')
+    card.select_one('.product-img img')['alt'] = 'unrecognized'
+    with WSRSearcher() as searcher:
+        assert searcher.parse_rarity(card, 'OS01/R01-023A') is None
+        heading = soup.new_tag('h3'); span = soup.new_tag('span'); span.string = rarity
+        heading.append(span); soup.select_one('.cards-list').insert(0, heading)
+        assert searcher.parse_rarity(card, 'OS01/R01-023A') == rarity

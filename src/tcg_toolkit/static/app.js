@@ -1,16 +1,43 @@
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
-import {selectItems, loadResults} from './logic.js';
+import {selectItems, loadResults, priceSteps, sliderIndex, sliderBound} from './logic.js';
 import {readHistory, appendHistory, saveHistory} from './history.js';
+import {fetchRate, formatPrice} from './currency.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
 const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg"};
 const gameLabel = game => t(gameKeys[game]);
 let items = [], limit = 100, controller = null, batch = 0, started = false;
+let steps = [], priceMin = null, priceMax = null;
 const stockKeys = {"in_stock": "in_stock", "out_of_stock": "out_of_stock", "unknown": "unknown"};
 const stockIcons = {in_stock: 'bi-check-circle-fill', out_of_stock: 'bi-x-circle', unknown: 'bi-question-circle'};
 let view = localStorage.getItem('view') === 'grid' ? 'grid' : 'list';
 const el = (tag, className = '', text = '') => {const node = document.createElement(tag); node.className = className; node.textContent = text; return node;};
 const icon = name => el('i', `bi ${name}`);
+let displayCurrency = 'JPY', exchangeRate = 1, currencyStatus = null, currencyRequest = 0;
+function priceDisplay(item) {
+  const price = el('span', 'converted-price');
+  price.append(el('span', '', formatPrice(item.price, displayCurrency, exchangeRate, getLanguage())));
+  if (displayCurrency !== 'JPY') price.append(el('small', 'original-price', formatPrice(item.price, 'JPY', 1, getLanguage())));
+  return price;
+}
+function renderCurrencyStatus() { $('currency-status').textContent = t('currency_fetched_at', {time: currencyStatus ? new Date(currencyStatus * 1000).toLocaleString(getLanguage()) : '—'}); }
+$('currency').addEventListener('change', async () => {
+  const target = $('currency').value, request = ++currencyRequest;
+  displayCurrency = 'JPY'; exchangeRate = 1;
+  currencyStatus = null;
+  renderCurrencyStatus(); render();
+  try {
+    let fetchedAt = null;
+    const rate = await fetchRate(target, fetch, value => { fetchedAt = value; });
+    if (request !== currencyRequest) return;
+    displayCurrency = target; exchangeRate = rate;
+    currencyStatus = fetchedAt;
+  } catch {
+    if (request !== currencyRequest) return;
+    $('currency').value = 'JPY'; currencyStatus = null;
+  }
+  renderCurrencyStatus(); render();
+});
 let history = readHistory(localStorage);
 function closeHistory() { $('search-history').hidden = true; $('keyword').setAttribute('aria-expanded', 'false'); }
 function showHistory() {
@@ -96,6 +123,11 @@ function stockBadge(item) {
     t(stockKeys[item.stock_status]) + (item.stock_quantity === null ? '' : ` (${item.stock_quantity})`));
   return badge;
 }
+function rarityBadge(item) {
+  if (!item.rarity) return '';
+  const badge = el('span', 'rarity-tag', item.rarity); badge.title = t('rarity_value', {rarity: item.rarity});
+  return badge;
+}
 function cardImage(item) {
   const frame = el('span', 'card-image');
   const fallback = el('span', 'image-fallback', t('no_image'));
@@ -116,33 +148,54 @@ function tableRow(item) {
   const row = document.createElement('tr');
   const cell = (child, className = '') => {const td = el('td', className); td.append(child); row.append(td);};
   const product = el('div', 'product-summary'); product.append(cardImage(item), cardLink(item));
-  cell(el('span', 'game-tag', gameLabel(item.game))); cell(item.card_number, 'mono'); cell(product);
-  cell(`¥${item.price.toLocaleString('en-US')}`, 'numeric'); cell(stockBadge(item));
+  cell(el('span', 'game-tag', gameLabel(item.game))); cell(rarityBadge(item)); cell(item.card_number, 'mono'); cell(product);
+  cell(priceDisplay(item), 'numeric'); cell(stockBadge(item));
   return row;
 }
 function gridCard(item) {
   const card = el('article', `card ${item.stock_status}`);
-  const top = el('div', 'card-top'); top.append(el('span', 'game-tag', gameLabel(item.game)), el('span', 'mono', item.card_number));
-  const bottom = el('div', 'card-bottom'); bottom.append(el('span', 'price', `¥${item.price.toLocaleString('en-US')}`), stockBadge(item));
+  const tags = el('div', 'card-tags'); tags.append(el('span', 'game-tag', gameLabel(item.game)), rarityBadge(item));
+  const top = el('div', 'card-top'); top.append(tags, el('span', 'mono', item.card_number));
+  const bottom = el('div', 'card-bottom'); bottom.append(priceDisplay(item), stockBadge(item));
   card.append(top, cardImage(item), cardLink(item, 'card-name'), bottom);
   return card;
 }
 function resetFilters() {
-  for (const id of ['text-filter', 'stock', 'min', 'max']) $(id).value = '';
+  for (const id of ['text-filter', 'stock', 'rarity']) $(id).value = '';
+  priceMin = priceMax = null;
   $('sort').value = 'original';
   document.querySelectorAll('[name="filter-game"]').forEach(el => {el.checked = true;});
   limit = 100;
   render();
 }
+function syncPriceSlider() {
+  steps = priceSteps(items);
+  const last = Math.max(steps.length - 1, 0);
+  for (const id of ['price-min', 'price-max']) { $(id).max = last; $(id).disabled = steps.length < 2; }
+  $('price-min').value = sliderIndex(steps, priceMin, 'min');
+  $('price-max').value = sliderIndex(steps, priceMax, 'max');
+  updatePriceSlider();
+}
+function updatePriceSlider() {
+  const last = Number($('price-max').max), lo = Number($('price-min').value), hi = Number($('price-max').value);
+  const percent = index => last ? index / last * 100 : 0;
+  $('price-fill').style.left = `${percent(lo)}%`;
+  $('price-fill').style.right = `${100 - (last ? percent(hi) : 100)}%`;
+  // Keep the min thumb reachable when both thumbs meet at the right end.
+  $('price-min').classList.toggle('on-top', lo > last / 2);
+  const format = price => formatPrice(price, displayCurrency, exchangeRate, getLanguage());
+  $('price-label').textContent = priceMin === null && priceMax === null ? t('any_price') : `${format(steps[lo])} – ${format(steps[hi])}`;
+  $('price-range').classList.toggle('active', priceMin !== null || priceMax !== null);
+}
 function render() {
-  const min = $('min').value === '' ? null : Number($('min').value);
-  const max = $('max').value === '' ? null : Number($('max').value);
-  const invalid = !$('min').validity.valid || !$('max').validity.valid
-    || [min, max].some(n => n !== null && (!Number.isInteger(n) || n < 0))
-    || (min !== null && max !== null && min > max);
-  $('filter-error').textContent = invalid ? t('invalid_price_range') : '';
-  const matches = invalid ? [] : selectItems(items, {games: checked('filter-game'), stock: $('stock').value,
-    min, max, text: $('text-filter').value, sort: $('sort').value});
+  const selectedRarity = $('rarity').value;
+  const rarities = [...new Set(items.map(item => item.rarity).filter(Boolean))].sort();
+  const options = [new Option(t('all'), ''), ...rarities.map(value => new Option(value, value))];
+  if (items.some(item => !item.rarity)) options.push(new Option(t('unknown'), '__unknown__'));
+  $('rarity').replaceChildren(...options); $('rarity').value = selectedRarity;
+  syncPriceSlider();
+  const matches = selectItems(items, {games: checked('filter-game'), stock: $('stock').value, rarity: $('rarity').value,
+    min: priceMin, max: priceMax, text: $('text-filter').value, sort: $('sort').value});
   $('counts').textContent = t('counts', {matching: matches.length.toLocaleString(getLanguage()), loaded: items.length.toLocaleString(getLanguage())});
   $('counts').title = t('counts_hint', {matching: matches.length.toLocaleString(getLanguage()), loaded: items.length.toLocaleString(getLanguage())});
   const shown = matches.slice(0, limit);
@@ -153,7 +206,7 @@ function render() {
   $('list-view').hidden = view !== 'list' || !matches.length;
   $('grid-view').hidden = view !== 'grid' || !matches.length;
   $('empty').hidden = matches.length > 0;
-  $('empty').querySelector('h3').textContent = invalid ? t('check_the_price_range') : items.length ? t('no_matching_results')
+  $('empty').querySelector('h3').textContent = items.length ? t('no_matching_results')
     : controller ? t('searching') : started ? t('no_results_found') : t('no_results');
   $('more').hidden = matches.length <= limit;
 }
@@ -192,7 +245,16 @@ $('search-form').addEventListener('submit', async event => {
 $('stop').addEventListener('click', () => {controller?.abort(); setStatus('stopped', 'bi-stop-circle'); $('stop').hidden = true;});
 $('keyword').addEventListener('input', validateSearch);
 document.querySelectorAll('[name="source"]').forEach(el => el.addEventListener('change', validateSearch));
-document.querySelectorAll('.filters input, .filters select').forEach(el => el.addEventListener('input', () => {limit = 100; render();}));
+document.querySelectorAll('.filters input:not([type=range]), .filters select').forEach(el => el.addEventListener('input', () => {limit = 100; render();}));
+for (const edge of ['min', 'max']) {
+  $(`price-${edge}`).addEventListener('input', () => {
+    const lo = $('price-min'), hi = $('price-max');
+    if (Number(lo.value) > Number(hi.value)) { if (edge === 'min') lo.value = hi.value; else hi.value = lo.value; }
+    priceMin = sliderBound(steps, Number(lo.value), 'min');
+    priceMax = sliderBound(steps, Number(hi.value), 'max');
+    limit = 100; render();
+  });
+}
 $('reset').addEventListener('click', resetFilters);
 $('more').addEventListener('click', () => {limit += 100; render();});
 document.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
@@ -203,7 +265,7 @@ function renderErrors() {
 }
 function refreshLanguage() {
   applyLanguage(document); $('language').value = getLanguage();
-  setStatus(statusKey, statusIcon); renderErrors(); validateSearch(); render();
+  setStatus(statusKey, statusIcon); renderErrors(); renderCurrencyStatus(); validateSearch(); render();
 }
 $('language').addEventListener('change', () => {setLanguage($('language').value); refreshLanguage();});
 $('detail-cancel').addEventListener('click', () => $('detail-dialog').close());

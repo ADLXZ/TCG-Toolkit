@@ -98,7 +98,7 @@ class CurrencyClient:
             if target in errors:
                 raise errors[target]
             raise CurrencyRequestError("No fresh rate available; the next attempt is allowed after 24 hours.")
-        return {"from": "JPY", "to": target.value, "amount": amount, "result": amount * row[0]}
+        return {"from": "JPY", "to": target.value, "amount": amount, "result": amount * row[0], "fetched_at": row[1]}
 
     def _fetch_rate(self, target: TargetCurrency) -> float:
         try:

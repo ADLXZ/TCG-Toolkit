@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 const source = await readFile(new URL('../src/tcg_toolkit/static/logic.js', import.meta.url), 'utf8');
-const {selectItems, loadResults} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const {selectItems, loadResults, priceSteps, sliderIndex, sliderBound} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 const base = {games: ['wsr','chaos'], stock: '', min: null, max: null, text: '', sort: 'original'};
 const items = [
  {game:'wsr',name:'Card 10',card_number:'A10',price:100,stock_status:'in_stock',stock_quantity:null},
@@ -32,4 +32,26 @@ test('stop ignores in-flight response and prevents further requests',async()=>{
  fetchPage:async()=>{calls++;controller.abort();return {next_page:2};},
  onPage:()=>received++,onError:()=>assert.fail(),wait:async()=>assert.fail()});
  assert.equal(calls,1);assert.equal(received,0);
+});
+
+test('rarity filtering combines with existing filters and handles unknown',()=>{
+ const cards=items.map((item,i)=>({...item,rarity:i===0?'SP':i===1?'R':null}));
+ assert.deepEqual(selectItems(cards,{...base,rarity:'SP'}),[cards[0]]);
+ assert.deepEqual(selectItems(cards,{...base,rarity:'R',stock:'in_stock'}),[]);
+ assert.deepEqual(selectItems(cards,{...base,rarity:'__unknown__'}),[cards[2]]);
+ assert.equal(selectItems(cards,{...base,rarity:''}).length,3);
+});
+
+test('price slider maps distinct prices and treats ends as unbounded', () => {
+  const steps = priceSteps([{price: 500}, {price: 100}, {price: 500}, {price: 9000}]);
+  assert.deepEqual(steps, [100, 500, 9000]);
+  assert.equal(sliderIndex(steps, null, 'min'), 0);
+  assert.equal(sliderIndex(steps, null, 'max'), 2);
+  assert.equal(sliderIndex(steps, 300, 'min'), 1);
+  assert.equal(sliderIndex(steps, 300, 'max'), 0);
+  assert.equal(sliderBound(steps, 0, 'min'), null);
+  assert.equal(sliderBound(steps, 1, 'min'), 500);
+  assert.equal(sliderBound(steps, 1, 'max'), 500);
+  assert.equal(sliderBound(steps, 2, 'max'), null);
+  assert.equal(sliderBound([100], 0, 'max'), null);
 });

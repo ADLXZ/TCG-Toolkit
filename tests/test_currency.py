@@ -26,7 +26,9 @@ def test_presets(target):
         return httpx.Response(200, json={"success": True, "result": 5.25})
     with httpx.Client(transport=httpx.MockTransport(respond)) as http:
         with CurrencyClient(api_key="test-key", client=http) as currency:
-            assert currency.convert_jpy(750, target) == {"from": "JPY", "to": target.value, "amount": 750, "result": 3937.5}
+            result = currency.convert_jpy(750, target)
+            assert result.pop("fetched_at") > 0
+            assert result == {"from": "JPY", "to": target.value, "amount": 750, "result": 3937.5}
         assert not http.is_closed
 
 
