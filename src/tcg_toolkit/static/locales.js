@@ -66,7 +66,11 @@ export const messages = {
     "invalid_search_parameters": "Invalid search parameters.",
     "counts_hint": "{matching} matching of {loaded} loaded",
     "counts": "{matching} / {loaded}",
-    "game_error": "{game}: {message}"
+    "game_error": "{game}: {message}",
+    "detail_title": "Open card details?",
+    "detail_description": "The product page will open on YuYu-Tei in a new tab.",
+    "detail_cancel": "Cancel",
+    "detail_confirm": "Open details"
   },
   "zh-CN": {
     "tcg_toolkit_search": "TCG Toolkit · 搜索",
@@ -135,6 +139,10 @@ export const messages = {
     "invalid_search_parameters": "搜索参数无效。",
     "counts_hint": "已加载 {loaded} 条，匹配 {matching} 条",
     "counts": "{matching} / {loaded}",
-    "game_error": "{game}：{message}"
+    "game_error": "{game}：{message}",
+    "detail_title": "打开卡牌详情？",
+    "detail_description": "将在新标签页中打开游游亭商品详情页。",
+    "detail_cancel": "取消",
+    "detail_confirm": "打开详情"
   }
 };

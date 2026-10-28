@@ -31,6 +31,16 @@ function cardLink(item, className = '') {
   const url = new URL(item.product_url, location.origin);
   if (url.protocol === 'https:' && url.hostname === 'yuyu-tei.jp') link.href = url.href;
   link.target = '_blank'; link.rel = 'noopener noreferrer';
+  const confirm = event => {
+    event.preventDefault();
+    if (!link.hasAttribute('href')) return;
+    $('detail-name').textContent = item.name;
+    $('detail-url').textContent = link.href;
+    $('detail-confirm').href = link.href;
+    $('detail-dialog').showModal();
+  };
+  link.addEventListener('click', confirm);
+  link.addEventListener('auxclick', event => {if (event.button === 1) confirm(event);});
   return link;
 }
 function stockBadge(item) {
@@ -148,4 +158,7 @@ function refreshLanguage() {
   setStatus(statusKey, statusIcon); renderErrors(); validateSearch(); render();
 }
 $('language').addEventListener('change', () => {setLanguage($('language').value); refreshLanguage();});
+$('detail-cancel').addEventListener('click', () => $('detail-dialog').close());
+$('detail-confirm').addEventListener('click', () => $('detail-dialog').close());
+$('detail-dialog').addEventListener('close', () => $('detail-confirm').removeAttribute('href'));
 refreshLanguage(); setView(view);
