@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import (ChaosTCGSearcher, Game, LyceeSearcher, SearchParseError,
                SearchRequestError, WSRSearcher)
+from .external import CurrencyClient, CurrencyConfigError, CurrencyRequestError, TargetCurrency
 
 app = FastAPI(title="TCG Toolkit")
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher}
@@ -36,6 +37,21 @@ def search(game: Game, keyword: Annotated[str, Query(min_length=1)],
     except SearchParseError as exc:
         raise HTTPException(502, detail={"type": type(exc).__name__,
                                          "message": "Could not read the source results."}) from exc
+
+
+@app.get("/api/currency/convert")
+def convert_currency(to: TargetCurrency, amount: Annotated[float, Query(ge=0, allow_inf_nan=False)] = 1):
+    try:
+        with CurrencyClient() as currency:
+            return currency.convert_jpy(amount, to)
+    except CurrencyConfigError as exc:
+        raise HTTPException(503, detail={"type": type(exc).__name__, "message": str(exc)}) from exc
+    except CurrencyRequestError as exc:
+        timeout = isinstance(exc.__cause__, httpx.TimeoutException)
+        raise HTTPException(504 if timeout else 502, detail={
+            "type": type(exc).__name__,
+            "message": "The currency provider timed out." if timeout else "Could not retrieve the currency conversion.",
+        }) from exc
 
 
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True), name="frontend")

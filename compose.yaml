@@ -1,6 +1,11 @@
 services:
   web:
     build: .
+    environment:
+      RAPIDAPI_KEY: "${RAPIDAPI_KEY:-}"
+      TCG_CURRENCY_CACHE: /app/data/currency.sqlite3
+    volumes:
+      - currency-data:/app/data
     ports:
       - "127.0.0.1:${TCG_PORT:-8000}:8000"
     restart: unless-stopped
@@ -10,6 +15,9 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+
+volumes:
+  currency-data:
 
 networks:
   default:
