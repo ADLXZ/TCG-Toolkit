@@ -59,6 +59,9 @@ jobs:
           platforms: linux/amd64
   backend:
     needs: build
+    permissions:
+      contents: read
+      packages: read
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -72,18 +75,22 @@ jobs:
           ROOT: ${{ vars.DEPLOY_PATH }}
           API_BASE_URL: ${{ vars.API_BASE_URL }}
           IMAGE: ${{ needs.build.outputs.image }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           [[ "$HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
           [[ "$SSH_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
           [[ "$ROOT" =~ ^/[a-zA-Z0-9_/-]+$ ]]
+          [[ "$REGISTRY_USER" =~ ^[a-zA-Z0-9_-]+(\[bot\])?$ ]]
           install -d -m 700 ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
           ssh -o StrictHostKeyChecking=yes "$SSH_USER@$HOST" "mkdir -p '$ROOT/releases/$GITHUB_SHA'"
           scp -o StrictHostKeyChecking=yes deploy/* "$SSH_USER@$HOST:$ROOT/releases/$GITHUB_SHA/"
+          printf '%s' "$REGISTRY_TOKEN" | ssh -o StrictHostKeyChecking=yes "$SSH_USER@$HOST" "sudo -n docker login ghcr.io --username '$REGISTRY_USER' --password-stdin"
           ssh -o StrictHostKeyChecking=yes "$SSH_USER@$HOST" "sudo -n python3 '$ROOT/releases/$GITHUB_SHA/deploy.py' '$ROOT' '$IMAGE' '$GITHUB_SHA'"
           EXPECTED_SHA="$GITHUB_SHA" python - <<'PY'
           import json, os, urllib.request
