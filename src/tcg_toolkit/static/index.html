@@ -20,9 +20,10 @@
 <section class="panel">
 <form id="search-form">
 <div class="search-line">
-<div class="input-icon">
+<div class="input-icon" id="keyword-wrapper">
 <i class="bi bi-search"></i>
-<input autocomplete="off" data-i18n-aria-label="keyword" data-i18n-placeholder="card_name_or_number" id="keyword" required=""/>
+<input autocomplete="off" data-i18n-aria-label="keyword" data-i18n-placeholder="card_name_or_number" id="keyword" required="" aria-expanded="false" aria-controls="search-history"/>
+<div id="search-history" hidden><div class="history-header"><div class="history-heading" data-i18n="search_history"></div><button type="button" id="history-clear" class="text-button" data-i18n="history_clear"></button></div><div id="history-items"></div><p id="history-empty"><i class="bi bi-clock-history"></i><span data-i18n="history_empty"></span></p></div>
 </div>
 <button id="search-button" type="submit"><i class="bi bi-arrow-right"></i><span data-i18n="search"></span></button>
 <button class="secondary" hidden="" id="stop" type="button"><i class="bi bi-stop-fill"></i><span data-i18n="stop"></span></button>

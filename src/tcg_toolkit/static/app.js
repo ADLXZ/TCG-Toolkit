@@ -1,5 +1,6 @@
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {selectItems, loadResults} from './logic.js';
+import {readHistory, appendHistory, saveHistory} from './history.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
 const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg"};
@@ -10,6 +11,52 @@ const stockIcons = {in_stock: 'bi-check-circle-fill', out_of_stock: 'bi-x-circle
 let view = localStorage.getItem('view') === 'grid' ? 'grid' : 'list';
 const el = (tag, className = '', text = '') => {const node = document.createElement(tag); node.className = className; node.textContent = text; return node;};
 const icon = name => el('i', `bi ${name}`);
+let history = readHistory(localStorage);
+function closeHistory() { $('search-history').hidden = true; $('keyword').setAttribute('aria-expanded', 'false'); }
+function showHistory() {
+  const list = $('history-items');
+  list.replaceChildren(...[...history].reverse().map(keyword => {
+    const row = el('div', 'history-row');
+    const button = el('button', 'history-item'); button.type = 'button'; button.title = keyword;
+    button.append(icon('bi-clock-history'), el('span', 'history-text', keyword));
+    button.addEventListener('click', () => { $('keyword').value = keyword; $('keyword').focus(); closeHistory(); validateSearch(); });
+    const remove = el('button', 'history-delete'); remove.type = 'button';
+    remove.append(icon('bi-x-lg'));
+    remove.title = t('history_delete', {keyword});
+    remove.setAttribute('aria-label', remove.title);
+    remove.addEventListener('click', event => {
+      event.preventDefault(); event.stopPropagation();
+      history = history.filter(value => value !== keyword);
+      saveHistory(localStorage, history);
+      $('keyword').focus(); showHistory();
+    });
+    row.append(button, remove);
+    return row;
+  }));
+  $('history-empty').hidden = history.length > 0;
+  $('history-clear').disabled = history.length === 0;
+  $('search-history').hidden = false; $('keyword').setAttribute('aria-expanded', 'true');
+}
+$('keyword').addEventListener('focus', showHistory);
+$('history-clear').addEventListener('click', () => {
+  history = []; saveHistory(localStorage, history);
+  $('keyword').focus(); showHistory();
+});
+$('keyword').addEventListener('click', showHistory);
+$('keyword').addEventListener('keydown', event => {
+  if (event.key === 'ArrowDown') {event.preventDefault(); showHistory(); $('history-items').querySelector('button')?.focus();}
+  if (event.key === 'Escape') closeHistory();
+});
+$('search-history').addEventListener('keydown', event => {
+  const buttons = [...$('history-items').querySelectorAll('button')];
+  const index = buttons.indexOf(document.activeElement);
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault(); buttons[(index + (event.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length]?.focus();
+  }
+  if (event.key === 'Escape') { $('keyword').focus(); closeHistory(); }
+});
+document.addEventListener('pointerdown', event => {if (!event.target.closest('#keyword-wrapper')) closeHistory();});
+$('keyword-wrapper').addEventListener('focusout', event => {if (!$('keyword-wrapper').contains(event.relatedTarget)) closeHistory();});
 let statusKey = '', statusIcon = '', errors = [];
 function setStatus(key, iconName = '') {
   statusKey = key; statusIcon = iconName;
@@ -120,6 +167,7 @@ function wait(signal) {
 }
 $('search-form').addEventListener('submit', async event => {
   event.preventDefault(); validateSearch(); if ($('search-button').disabled) return;
+  history = appendHistory(history, $('keyword').value); saveHistory(localStorage, history); closeHistory();
   controller?.abort(); const current = ++batch;
   const active = new AbortController(); controller = active;
   items = []; started = true; resetFilters(); errors = []; renderErrors();

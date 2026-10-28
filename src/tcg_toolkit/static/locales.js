@@ -70,7 +70,11 @@ export const messages = {
     "detail_title": "Open card details?",
     "detail_description": "The product page will open on YuYu-Tei in a new tab.",
     "detail_cancel": "Cancel",
-    "detail_confirm": "Open details"
+    "detail_confirm": "Open details",
+    "search_history": "Recent searches",
+    "history_empty": "No search history yet",
+    "history_clear": "Clear history",
+    "history_delete": "Delete history item: {keyword}"
   },
   "zh-CN": {
     "tcg_toolkit_search": "TCG Toolkit · 搜索",
@@ -143,6 +147,10 @@ export const messages = {
     "detail_title": "打开卡牌详情？",
     "detail_description": "将在新标签页中打开游游亭商品详情页。",
     "detail_cancel": "取消",
-    "detail_confirm": "打开详情"
+    "detail_confirm": "打开详情",
+    "search_history": "最近搜索",
+    "history_empty": "暂无搜索历史",
+    "history_clear": "清空历史",
+    "history_delete": "删除历史记录：{keyword}"
   }
 };
