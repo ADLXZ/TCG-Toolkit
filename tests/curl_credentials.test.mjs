@@ -33,26 +33,27 @@ const {createYuyuteiClient, CREDENTIALS_KEY} = await import(moduleURL(clientSour
 function setup() {
   const elements = new Map();
   globalThis.document = {getElementById(id) {
-    if (!elements.has(id)) elements.set(id, {value: '', textContent: '', disabled: false, classList: {toggle() {}},
+    if (!elements.has(id)) elements.set(id, {value: '', textContent: '', disabled: false, classList: {toggle() {}}, setAttribute() {},
       handlers: {}, addEventListener(name, fn) { this.handlers[name] = fn; }});
     return elements.get(id);
   }};
   const storage = new Map();
   const client = createYuyuteiClient({storage: {getItem: k => storage.get(k), setItem: (k,v) => storage.set(k,v), removeItem: k => storage.delete(k)}, getSessionToken: () => 'login'});
   client.activateUser('alice');
-  const cart = {state: {configured: false, loading: false}, clear() { this.cleared = true; }, refresh() { assert.fail('import must not query'); }};
+  const cart = {state: {configured: false, loading: false}, refreshes: 0, refresh() { this.refreshes++; this.state.loading = true; }};
   const settings = bindCartSettings(client, cart);
   const el = id => document.getElementById(id);
   return {storage, client, cart, settings, el, save: () => el('cart-curl-save').handlers.click()};
 }
-test('import saves only extracted credentials in account-scoped session storage without a request', () => {
+test('import saves only extracted credentials in account-scoped session storage, then verifies once', () => {
   const {storage, cart, settings, el, save} = setup();
   el('cart-curl').value = good; el('cart-cookie').value = 'old';
   save();
   assert.deepEqual(JSON.parse(storage.get(CREDENTIALS_KEY)), {userId: 'alice', credentials: expected});
   assert.equal(el('cart-curl').value, ''); assert.equal(el('cart-cookie').value, '');
-  assert.equal(el('cart-settings-status').textContent, 'cart_curl_saved');
-  assert.equal(el('cart-clear').disabled, false); assert.equal(cart.cleared, true);
+  // Same as the Cookie + CSRF route: one cart read verifies the saved values.
+  assert.equal(el('cart-settings-status').textContent, 'cart_verifying');
+  assert.equal(cart.refreshes, 1);
   el('cart-curl').value = good; settings.reset(); assert.equal(el('cart-curl').value, '');
 });
 test('invalid import preserves previous credentials and draft; account change clears stored credentials', () => {

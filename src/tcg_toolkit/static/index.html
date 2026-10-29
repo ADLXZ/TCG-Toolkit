@@ -54,15 +54,14 @@
 <span id="account-status" role="alert"></span>
 </div>
 </section>
-<section class="panel cart-settings" aria-labelledby="cart-settings-title">
-<div class="cart-settings-head"><span class="account-icon"><i class="bi bi-cart3"></i></span><div class="cart-settings-text"><h2 id="cart-settings-title" data-i18n="cart_settings_title"></h2><p data-i18n="cart_settings_intro"></p></div><span id="cart-settings-state" class="cart-state"></span></div>
+<section class="panel cart-settings" id="cart-settings" aria-labelledby="cart-settings-title">
+<div class="cart-settings-head"><span class="account-icon"><i class="bi bi-cart3"></i></span><div class="cart-settings-text"><h2 id="cart-settings-title" data-i18n="cart_settings_title"></h2><p><strong data-i18n="cart_settings_intro_lead"></strong> <span data-i18n="cart_settings_intro"></span></p></div>
+<div class="cart-settings-meta"><span id="cart-settings-state" class="cart-state" role="status"><i id="cart-settings-state-icon" aria-hidden="true"></i><span id="cart-settings-state-label"></span></span><button type="button" id="cart-settings-toggle" class="icon-button cart-settings-toggle" aria-controls="cart-settings-body" hidden><i id="cart-settings-toggle-icon" class="bi bi-chevron-down" aria-hidden="true"></i></button></div></div>
+<div id="cart-settings-body" class="cart-settings-body">
 <form id="cart-settings-form" autocomplete="off" novalidate>
-<div class="cart-curl-import">
-<label class="field" for="cart-curl"><span data-i18n="cart_curl_label"></span></label>
-<p id="cart-curl-help" class="cart-help-note" data-i18n="cart_curl_help"></p>
-<textarea id="cart-curl" rows="4" maxlength="65536" autocomplete="off" spellcheck="false" aria-describedby="cart-curl-help" data-i18n-placeholder="cart_curl_placeholder"></textarea>
-<button type="button" id="cart-curl-save" class="secondary" data-i18n="cart_curl_save"></button>
-</div>
+<section class="cart-route recommended" aria-labelledby="cart-route-manual-title">
+<div class="cart-route-head"><h3 id="cart-route-manual-title" data-i18n="cart_route_manual"></h3><span class="cart-route-tag" data-i18n="cart_route_recommended"></span></div>
+<p class="cart-route-desc" data-i18n="cart_route_manual_desc"></p>
 <div class="cart-settings-fields">
 <label class="field"><span data-i18n="cart_cookie"></span><input id="cart-cookie" type="password" autocomplete="off" spellcheck="false" maxlength="16384" data-i18n-placeholder="cart_cookie_placeholder"/></label>
 <label class="field"><span data-i18n="cart_csrf"></span><input id="cart-csrf" type="password" autocomplete="off" spellcheck="false" maxlength="4096" data-i18n-placeholder="cart_csrf_placeholder"/></label>
@@ -71,17 +70,36 @@
 <ol>
 <li data-i18n="cart_help_1"></li>
 <li><span data-i18n="cart_help_2"></span>
-<figure class="cart-help-figure"><a href="./cart-help-cookies.webp" target="_blank" rel="noopener"><img src="./cart-help-cookies.webp" width="2000" height="1262" loading="lazy" decoding="async" data-i18n-alt="cart_help_figure_alt"/></a><figcaption data-i18n="cart_help_figure"></figcaption></figure>
+<figure class="cart-help-figure"><a href="./cart-help-cookies.webp" target="_blank" rel="noopener"><img src="./cart-help-cookies.webp" width="2000" height="1206" loading="lazy" decoding="async" data-i18n-alt="cart_help_figure_alt"/></a><figcaption data-i18n="cart_help_figure"></figcaption></figure>
 <p class="cart-help-warning"><i class="bi bi-exclamation-triangle"></i><span data-i18n="cart_help_xsrf"></span></p></li>
-<li><span data-i18n="cart_help_3"></span><code class="cart-help-code">document.querySelector('meta[name="csrf-token"]').content</code><span class="cart-help-note" data-i18n="cart_help_3_note"></span></li>
+<li><span data-i18n="cart_help_3"></span><code class="cart-help-code">document.querySelector('meta[name="csrf-token"]').content</code>
+<figure class="cart-help-figure"><a href="./cart-help-console.webp" target="_blank" rel="noopener"><img src="./cart-help-console.webp" width="2000" height="656" loading="lazy" decoding="async" data-i18n-alt="cart_help_console_alt"/></a><figcaption data-i18n="cart_help_console_figure"></figcaption></figure>
+<span class="cart-help-note" data-i18n="cart_help_3_note"></span></li>
 <li data-i18n="cart_help_4"></li>
 </ol></details>
+<div class="cart-route-actions"><button type="submit" id="cart-save"><i class="bi bi-check-lg"></i><span data-i18n="cart_save"></span></button></div>
+</section>
+<div class="cart-route-divider"><span data-i18n="cart_route_or"></span></div>
+<section class="cart-route" aria-labelledby="cart-route-curl-title">
+<div class="cart-route-head"><h3 id="cart-route-curl-title" data-i18n="cart_route_curl"></h3><span class="cart-route-tag muted" data-i18n="cart_route_fallback"></span></div>
+<p id="cart-curl-help" class="cart-route-desc" data-i18n="cart_curl_help"></p>
+<label class="sr-only" for="cart-curl" data-i18n="cart_curl_label"></label>
+<textarea id="cart-curl" rows="4" maxlength="65536" autocomplete="off" spellcheck="false" aria-describedby="cart-curl-help" data-i18n-placeholder="cart_curl_placeholder"></textarea>
+<details class="cart-help"><summary data-i18n="cart_help_title"></summary>
+<ol>
+<li data-i18n="cart_curl_step_1"></li>
+<li><span data-i18n="cart_curl_step_2"></span>
+<figure class="cart-help-figure"><a href="./cart-help-curl.webp" target="_blank" rel="noopener"><img src="./cart-help-curl.webp" width="2000" height="1165" loading="lazy" decoding="async" data-i18n-alt="cart_curl_figure_alt"/></a><figcaption data-i18n="cart_curl_figure"></figcaption></figure></li>
+<li data-i18n="cart_curl_step_3"></li>
+</ol></details>
+<div class="cart-route-actions"><button type="button" id="cart-curl-save"><i class="bi bi-check-lg"></i><span data-i18n="cart_save"></span></button></div>
+</section>
 <div class="cart-settings-actions">
 <p id="cart-settings-status" role="status" aria-live="polite"></p>
 <button type="button" id="cart-clear" class="secondary"><i class="bi bi-trash3"></i><span data-i18n="cart_clear"></span></button>
-<button type="submit" id="cart-save"><i class="bi bi-check-lg"></i><span data-i18n="cart_save"></span></button>
 </div>
 </form>
+</div>
 </section>
 <div class="account-grid">
 <section class="panel account-card"><span class="account-icon"><i class="bi bi-person-vcard"></i></span><h2 data-i18n="auth_profile"></h2><span class="soon" data-i18n="auth_coming"></span></section>

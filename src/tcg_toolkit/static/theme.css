@@ -48,6 +48,14 @@
   --color-favorite: var(--gold-500);
   --color-favorite-hover: var(--gold-400);
 
+  /* Status: confirmed / working state (e.g. verified cart credentials) */
+  --green-50: #f0fdf4;
+  --green-200: #bbf7d0;
+  --green-700: #15803d;
+  --color-success: var(--green-700);
+  --color-success-bg: var(--green-50);
+  --color-success-border: var(--green-200);
+
   /* Rarity badges (tiers from rarities.js) */
   --rarity-normal: var(--color-primary);
   --rarity-normal-text: var(--color-on-primary);
