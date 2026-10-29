@@ -67,8 +67,9 @@ async function signedIn(value) {
   api.invalidate();
   searchApp ??= await import('./app.js');
   if (getToken() !== expectedToken) return;
-  user = value; searchApp.activateUser(user.id, api.fetch);
-  yuyuteiClient.activateUser(user.id, api.fetch);
+  // The cart client must know the account before the search app reads its cart.
+  user = value; yuyuteiClient.activateUser(user.id, api.fetch);
+  searchApp.activateUser(user.id, api.fetch);
   $('account-status').textContent = '';
   $('current-username').textContent = user.username;
   $('account-username').textContent = user.username; setAvatar(user.username);

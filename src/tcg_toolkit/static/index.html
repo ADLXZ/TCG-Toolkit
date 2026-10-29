@@ -54,6 +54,29 @@
 <span id="account-status" role="alert"></span>
 </div>
 </section>
+<section class="panel cart-settings" aria-labelledby="cart-settings-title">
+<div class="cart-settings-head"><span class="account-icon"><i class="bi bi-cart3"></i></span><div class="cart-settings-text"><h2 id="cart-settings-title" data-i18n="cart_settings_title"></h2><p data-i18n="cart_settings_intro"></p></div><span id="cart-settings-state" class="cart-state"></span></div>
+<form id="cart-settings-form" autocomplete="off" novalidate>
+<div class="cart-settings-fields">
+<label class="field"><span data-i18n="cart_cookie"></span><input id="cart-cookie" type="password" autocomplete="off" spellcheck="false" maxlength="16384" data-i18n-placeholder="cart_cookie_placeholder"/></label>
+<label class="field"><span data-i18n="cart_csrf"></span><input id="cart-csrf" type="password" autocomplete="off" spellcheck="false" maxlength="4096" data-i18n-placeholder="cart_csrf_placeholder"/></label>
+</div>
+<details class="cart-help"><summary data-i18n="cart_help_title"></summary>
+<ol>
+<li data-i18n="cart_help_1"></li>
+<li><span data-i18n="cart_help_2"></span>
+<figure class="cart-help-figure"><a href="./cart-help-cookies.webp" target="_blank" rel="noopener"><img src="./cart-help-cookies.webp" width="2000" height="1262" loading="lazy" decoding="async" data-i18n-alt="cart_help_figure_alt"/></a><figcaption data-i18n="cart_help_figure"></figcaption></figure>
+<p class="cart-help-warning"><i class="bi bi-exclamation-triangle"></i><span data-i18n="cart_help_xsrf"></span></p></li>
+<li><span data-i18n="cart_help_3"></span><code class="cart-help-code">document.querySelector('meta[name="csrf-token"]').content</code><span class="cart-help-note" data-i18n="cart_help_3_note"></span></li>
+<li data-i18n="cart_help_4"></li>
+</ol></details>
+<div class="cart-settings-actions">
+<p id="cart-settings-status" role="status" aria-live="polite"></p>
+<button type="button" id="cart-clear" class="secondary"><i class="bi bi-trash3"></i><span data-i18n="cart_clear"></span></button>
+<button type="submit" id="cart-save"><i class="bi bi-check-lg"></i><span data-i18n="cart_save"></span></button>
+</div>
+</form>
+</section>
 <div class="account-grid">
 <section class="panel account-card"><span class="account-icon"><i class="bi bi-person-vcard"></i></span><h2 data-i18n="auth_profile"></h2><span class="soon" data-i18n="auth_coming"></span></section>
 <section class="panel account-card"><span class="account-icon"><i class="bi bi-shield-lock"></i></span><h2 data-i18n="auth_security"></h2><span class="soon" data-i18n="auth_coming"></span></section>
@@ -125,12 +148,12 @@
 <span class="count" id="counts">0 / 0</span>
 <span aria-live="polite" id="status" role="status"></span>
 </div>
-<div class="heading-actions"><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
+<div class="heading-actions"><div class="cart-bar"><span id="cart-summary" class="cart-summary" aria-live="polite"></span><button type="button" id="cart-refresh" class="icon-button" data-i18n-aria-label="cart_refresh" data-i18n-title="cart_refresh" hidden><i class="bi bi-arrow-clockwise"></i></button></div><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
 </div>
 <div id="errors" role="alert"></div>
 <div id="search-filters"></div>
 <div class="panel table-panel" id="list-view">
-<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="numeric" data-i18n="cards_owned_column"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="numeric" data-i18n="cards_owned_column"></th><th class="cart-col" data-i18n="cart_column"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="rows"></tbody></table></div>
 </div>
 <div class="card-grid" hidden="" id="grid-view"></div>
 <div class="empty" id="empty"><i class="bi bi-search"></i><h3 data-i18n="no_results"></h3></div>

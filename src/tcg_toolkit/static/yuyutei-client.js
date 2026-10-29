@@ -99,7 +99,9 @@ export function createYuyuteiClient({storage = browserStorage(), request = apiRe
         throw new Error('idempotency_key_required');
       return call('/api/yuyutei/cart', 'POST', card, {'Idempotency-Key': idempotencyKey});
     },
-    remove(card) { return call('/api/yuyutei/cart', 'DELETE', card); }
+    remove(card) { return call('/api/yuyutei/cart', 'DELETE', card); },
+    // Lowers one cart row to an absolute target; repeating it cannot lower twice.
+    setQuantity(card, quantity) { return call('/api/yuyutei/cart/quantity', 'PUT', {...card, quantity}); }
   };
 }
 

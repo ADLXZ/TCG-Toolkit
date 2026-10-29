@@ -18,7 +18,7 @@ export function t(key, parameters = {}) {
 export function applyLanguage(root) {
   root.documentElement.lang = language;
   root.querySelectorAll('[data-i18n]').forEach(node => {node.textContent = t(node.dataset.i18n);});
-  for (const attribute of ['aria-label', 'placeholder', 'title']) {
+  for (const attribute of ['aria-label', 'placeholder', 'title', 'alt']) {
     root.querySelectorAll(`[data-i18n-${attribute}]`).forEach(node => {
       node.setAttribute(attribute, t(node.getAttribute(`data-i18n-${attribute}`)));
     });

@@ -130,7 +130,19 @@ class BaseSearcher:
             stock_text=stock_text, product_url=urljoin(url, link["href"]),
             image_url=image_url,
             rarity=self.parse_rarity(card, number),
+            cart=self.parse_cart_target(card),
         )
+
+    def parse_cart_target(self, card: Tag) -> dict | None:
+        def value(name):
+            node = card.select_one(f'input.cart_{name}')
+            return str(node.get('value', '')).strip() if node else ''
+        gid, ver, cid, kizu = value('gid'), value('ver'), value('cid'), value('kizu') or '0'
+        # Same constraints as the cart API; anything else simply disables add-to-cart.
+        if (re.fullmatch(r'[0-9]+', gid) and re.fullmatch(r'[A-Za-z0-9_-][A-Za-z0-9_.-]{0,63}', ver)
+                and re.fullmatch(r'[0-9]{1,32}', cid) and kizu in ('0', '1')):
+            return {'gid': int(gid), 'ver': ver, 'cid': cid, 'kizu': int(kizu)}
+        return None
 
     def parse_rarity(self, card: Tag, number: str) -> str | None:
         group = card.find_parent(class_='cards-list')

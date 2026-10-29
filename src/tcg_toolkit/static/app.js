@@ -6,6 +6,9 @@ import {rarityBadge, cardImage} from './card-view.js';
 import {createFilterPanel} from './filters.js';
 import {readHistory, appendHistory, saveHistory} from './history.js';
 import {fetchRate, formatPrice} from './currency.js';
+import {yuyuteiClient} from './yuyutei-client.js';
+import {createCart, cartTarget} from './cart.js';
+import {bindCartSettings} from './cart-settings.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
 const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg", "ws": "ws", "pm": "pm"};
@@ -47,6 +50,48 @@ $('currency').addEventListener('change', async () => {
 let userId = null, requestAPI = fetch;
 let history = [];
 const favorites = createFavorites(() => {render(); renderFavorites();});
+const cart = createCart(yuyuteiClient, () => {render(); renderCartSummary();});
+const cartSettings = bindCartSettings(yuyuteiClient, cart);
+function renderCartSummary() {
+  const state = cart.state, box = $('cart-summary');
+  const content = [icon('bi-cart3')];
+  if (!state.configured) {
+    const link = el('a', 'cart-setup', t('cart_setup')); link.href = '#account';
+    content.push(link);
+  } else if (state.loading && !state.rows.length) content.push(t('cart_loading'));
+  else if (state.error) content.push(t(state.error));
+  else content.push(state.totalQuantity === null ? t('cart_summary_incomplete')
+    : t('cart_summary', {quantity: state.totalQuantity.toLocaleString(getLanguage()), subtotal: money(state.subtotal)}));
+  box.replaceChildren(...content);
+  $('cart-refresh').hidden = !state.configured;
+  $('cart-refresh').disabled = state.loading;
+  $('cart-refresh').querySelector('.bi').classList.toggle('spin', state.loading);
+  cartSettings.render();
+}
+$('cart-refresh').addEventListener('click', () => cart.refresh());
+// +1 / −1 against the real YuYu-Tei cart; the count shown is what the shop reported.
+function cartControls(item) {
+  const box = el('div', 'cart-controls'), target = cartTarget(item), state = cart.state;
+  if (!target || !state.configured) { box.append(el('span', 'muted', '—')); return box; }
+  const quantity = cart.quantity(target), busy = cart.isBusy(target);
+  const pending = busy || (state.loading && !state.rows.length);
+  const stepper = el('div', `cart-stepper${quantity ? ' active' : ''}`); stepper.setAttribute('role', 'group');
+  stepper.setAttribute('aria-label', t('cart_quantity_label', {quantity}));
+  const button = (iconName, key, disabled, action) => {
+    const node = el('button', 'cart-step'); node.type = 'button'; node.append(icon(iconName));
+    node.setAttribute('aria-label', t(key)); node.title = t(key); node.disabled = disabled;
+    node.addEventListener('click', action); return node;
+  };
+  const soldOut = item.stock_status === 'out_of_stock' || (item.stock_quantity != null && quantity >= item.stock_quantity);
+  const count = el('span', 'cart-qty');
+  if (busy) count.append(icon('bi-arrow-repeat spin')); else count.textContent = quantity.toLocaleString(getLanguage());
+  stepper.append(button('bi-dash-lg', 'cart_decrease', pending || !quantity, () => cart.decrease(target)), count,
+    button('bi-plus-lg', soldOut ? 'cart_no_stock' : 'cart_increase', pending || soldOut, () => cart.increase(target, item.price)));
+  box.append(stepper);
+  const message = cart.message(target);
+  if (message) { const note = el('span', 'cart-note'); note.setAttribute('role', 'status'); note.append(icon('bi-exclamation-circle'), t(message)); box.append(note); }
+  return box;
+}
 function closeHistory() { $('search-history').hidden = true; $('keyword').setAttribute('aria-expanded', 'false'); }
 function showHistory() {
   const list = $('history-items');
@@ -185,8 +230,8 @@ function renderFavorites() {
   const state = favorites.state;
   const matches = favoriteFilters.apply(state.records.map(row => row.item));
   favoriteFilters.element.hidden = !state.records.length;
-  $('favorites-rows').replaceChildren(...(view === 'list' ? matches.map(tableRow) : []));
-  $('favorites-grid').replaceChildren(...(view === 'grid' ? matches.map(gridCard) : []));
+  $('favorites-rows').replaceChildren(...(view === 'list' ? matches.map(item => tableRow(item)) : []));
+  $('favorites-grid').replaceChildren(...(view === 'grid' ? matches.map(item => gridCard(item)) : []));
   $('favorites-list').hidden = view !== 'list' || !matches.length;
   $('favorites-grid').hidden = view !== 'grid' || !matches.length;
   $('favorites-empty').hidden = !state.ready || matches.length > 0;
@@ -204,17 +249,19 @@ $('favorites-refresh').addEventListener('click', () => favorites.refreshAll());
 $('favorites-retry').addEventListener('click', () => favorites.load());
 window.addEventListener('hashchange', () => {render(); renderFavorites();});
 document.addEventListener('inventorychange', () => {render(); renderFavorites();});
-function tableRow(item) {
+function tableRow(item, withCart = false) {
   const row = document.createElement('tr');
   const cell = (child, className = '') => {const td = el('td', className); td.append(child); row.append(td);};
   const product = el('div', 'product-summary'); product.append(cardImage(item), cardLink(item));
   cell(el('span', 'game-tag', gameLabel(item.game))); cell(rarityBadge(item)); cell(item.card_number, 'mono'); cell(product);
   const owned = ownedQuantity(item);
   cell(priceDisplay(item), 'numeric'); cell(stockBadge(item));
-  cell(owned ? owned.toLocaleString(getLanguage()) : '—', `numeric owned-cell${owned ? '' : ' muted'}`); cell(favoriteCell(item), 'action-col');
+  cell(owned ? owned.toLocaleString(getLanguage()) : '—', `numeric owned-cell${owned ? '' : ' muted'}`);
+  if (withCart) cell(cartControls(item), 'cart-col');
+  cell(favoriteCell(item), 'action-col');
   return row;
 }
-function gridCard(item) {
+function gridCard(item, withCart = false) {
   const card = el('article', `card ${item.stock_status}`);
   const tags = el('div', 'card-tags'); tags.append(el('span', 'game-tag', gameLabel(item.game)), rarityBadge(item));
   const top = el('div', 'card-top'); top.append(tags, el('span', 'mono', item.card_number));
@@ -223,6 +270,7 @@ function gridCard(item) {
   const owned = ownedQuantity(item);
   if (owned) { const badge = el('span', 'owned-badge'); badge.append(icon('bi-collection'), t('cards_owned_badge', {quantity: owned.toLocaleString(getLanguage())})); image.append(badge); }
   card.append(top, image, cardLink(item, 'card-name'), bottom);
+  if (withCart) { const row = el('div', 'card-cart'); row.append(el('span', 'card-cart-label', t('cart_column')), cartControls(item)); card.append(row); }
   const meta = favoriteMeta(item);
   if (meta) {
     if (favorites.find(item) && location.hash === '#favorites') meta.append(favoriteRefresh(item));
@@ -236,7 +284,7 @@ function render() {
   $('counts').title = t('counts_hint', {matching: matches.length.toLocaleString(getLanguage()), loaded: items.length.toLocaleString(getLanguage())});
   const shown = matches.slice(0, limit);
   const fragment = document.createDocumentFragment();
-  fragment.append(...shown.map(view === 'grid' ? gridCard : tableRow));
+  fragment.append(...shown.map(item => view === 'grid' ? gridCard(item, true) : tableRow(item, true)));
   $('rows').replaceChildren(...(view === 'list' ? [fragment] : []));
   $('grid-view').replaceChildren(...(view === 'grid' ? [fragment] : []));
   $('list-view').hidden = view !== 'list' || !matches.length;
@@ -290,7 +338,7 @@ function renderErrors() {
 }
 function refreshLanguage() {
   applyLanguage(document); $('language').value = getLanguage();
-  setStatus(statusKey, statusIcon); renderErrors(); renderCurrencyStatus(); validateSearch(); render(); renderFavorites();
+  setStatus(statusKey, statusIcon); renderErrors(); renderCurrencyStatus(); validateSearch(); render(); renderFavorites(); renderCartSummary();
 }
 $('language').addEventListener('change', () => {setLanguage($('language').value); refreshLanguage();});
 $('detail-cancel').addEventListener('click', () => $('detail-dialog').close());
@@ -300,7 +348,7 @@ refreshLanguage(); setView(view);
 
 export function clearUser() {
   ++batch; ++currencyRequest; controller?.abort(); controller = null;
-  favorites.clear(); clearCards();
+  favorites.clear(); clearCards(); cartSettings.reset(); cart.clear();
   userId = null; items = []; history = []; started = false; errors = [];
   displayCurrency = 'JPY'; exchangeRate = 1; currencyStatus = null;
   $('currency').value = 'JPY'; $('keyword').value = ''; $('stop').hidden = true;
@@ -313,6 +361,6 @@ export function clearUser() {
 export function activateUser(id, request) {
   clearUser(); userId = id; requestAPI = request;
   history = readHistory(localStorage, userId); $('search').inert = false;
-  favorites.activate(requestAPI); activateCards(requestAPI);
+  favorites.activate(requestAPI); activateCards(requestAPI); cart.refresh();
   refreshLanguage();
 }

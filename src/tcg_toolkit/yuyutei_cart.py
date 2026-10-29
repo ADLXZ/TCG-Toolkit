@@ -1,4 +1,4 @@
-"""User-scoped YuYu-Tei credentials and explicit, single-attempt cart additions."""
+"""Request-scoped YuYu-Tei credentials and verified, single-attempt cart operations."""
 from datetime import datetime, timezone
 from contextlib import contextmanager
 from hashlib import sha256
@@ -42,6 +42,14 @@ def session_lock(csrf_token):
             entry[1] -= 1
             if entry[1] == 0:
                 del _session_locks[key]
+
+
+@contextmanager
+def cart_session(session_cookie, csrf_token):
+    # Reads also hold the lock: rendering the cart can refresh its row mapping.
+    with session_lock(csrf_token), httpx.Client(timeout=20, follow_redirects=False) as client:
+        client.cookies.set('laravel_session', session_cookie, domain='yuyu-tei.jp', path='/')
+        yield client
 
 
 class CredentialsInput(BaseModel):
@@ -139,8 +147,7 @@ def add_to_cart(body: CartInput, session_cookie: str, csrf_token: str):
     def quantity(snapshot):
         return sum(item['quantity'] for item in snapshot['items']
                    if all(item[key] == value for key, value in target.items()))
-    with httpx.Client(timeout=20, follow_redirects=False) as client:
-        client.cookies.set('laravel_session', session_cookie, domain='yuyu-tei.jp', path='/')
+    with cart_session(session_cookie, csrf_token) as client:
         # Missing baseline means no POST is sent. Deletion controls are irrelevant
         # to counting, but every row must be readable to verify an increment.
         try:
@@ -154,7 +161,8 @@ def add_to_cart(body: CartInput, session_cookie: str, csrf_token: str):
                 'before_quantity': before, 'after_quantity': None, 'verification': 'unknown'}) from None
         result = {**body.model_dump(), 'requested_quantity': body.counter, 'before_quantity': before}
         try:
-            after = quantity(read_cart(client, csrf_token))
+            snapshot = read_cart(client, csrf_token)
+            after = quantity(snapshot)
         except HTTPException as exc:
             raise HTTPException(exc.status_code, detail={**exc.detail, **result, 'outcome': 'unknown',
                 'upstream_status': 'SUCCESS', 'after_quantity': None, 'verification': 'unknown'}) from None
@@ -162,7 +170,7 @@ def add_to_cart(body: CartInput, session_cookie: str, csrf_token: str):
         if after - before != body.counter:
             raise HTTPException(409, detail={**result, 'type': 'yuyutei_quantity_mismatch',
                 'upstream_status': 'SUCCESS', 'outcome': 'unknown', 'verification': 'mismatch'})
-        return {'status': 'SUCCESS', **result, 'verification': 'verified'}
+        return write_result(snapshot, **result, verification='verified')
 
 
 @router.post('/cart', dependencies=[Depends(write_guard)])
@@ -176,8 +184,7 @@ def add(request: Request, envelope=Depends(add_input), user=Depends(current_user
         if replay is not None:
             return replay
     try:
-        with session_lock(credentials.csrf_token):
-            result = add_to_cart(body, credentials.cookie, credentials.csrf_token)
+        result = add_to_cart(body, credentials.cookie, credentials.csrf_token)
     except HTTPException as exc:
         if key is not None:
             cart_operations.finish(store, user['id'], key, exc.status_code, {'detail': exc.detail})
@@ -289,45 +296,119 @@ def cart_result(snapshot):
             'currency': 'JPY', 'complete': complete, 'warnings': snapshot['warnings']}
 
 
+def write_result(snapshot, **fields):
+    return {'status': 'SUCCESS', **fields, 'cart': cart_result(snapshot)}
+
+
+def matching_rows(snapshot, target):
+    return [item for item in snapshot['items'] if all(item[key] == value for key, value in target.items())]
+
+
+def post_cart_service(client, csrf_token, row, *, mode, kind, **fields):
+    response = cart_request(client, 'POST', CART_SERVICE,
+        data={'mode': mode, 'CART_ITEM_ID': row['_cart_item_id'], 'status': 'sell', 'type': kind, **fields},
+        headers={'X-CSRF-TOKEN': csrf_token, 'Referer': CART_PAGE,
+                 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'})
+    try:
+        data = response.json()
+    except ValueError:
+        raise cart_error() from None
+    if not isinstance(data, dict):
+        raise cart_error()
+    return data
+
+
 @router.post('/cart/query', dependencies=[Depends(write_guard)])
 def listing(envelope=Depends(query_input)):
     credentials = envelope.credentials
     # Include reads: rendering the upstream cart can refresh its row mapping.
-    with session_lock(credentials.csrf_token), httpx.Client(timeout=20, follow_redirects=False) as client:
-        client.cookies.set('laravel_session', credentials.cookie, domain='yuyu-tei.jp', path='/')
+    with cart_session(credentials.cookie, credentials.csrf_token) as client:
         return cart_result(read_cart(client, credentials.csrf_token, strict=False))
+
+
+def locate(snapshot, target, *, allow_missing=False):
+    found = matching_rows(snapshot, target)
+    if not found and allow_missing:
+        return None
+    if not found:
+        raise HTTPException(404, detail='yuyutei_cart_item_not_found')
+    if len(found) != 1:
+        raise HTTPException(409, detail={'type': 'yuyutei_cart_item_ambiguous'})
+    return found[0]
+
+
+def remove_row(client, csrf_token, target, row):
+    """Remove one located row; return the verified cart without it. Caller holds the session lock."""
+    data = post_cart_service(client, csrf_token, row, mode='remove', kind=target['type'])
+    if not isinstance(data, dict) or not {'CART_ITEM_ID', 'GAME_ID', 'RESERVED_CHECK'} <= data.keys() or str(data['GAME_ID']) != str(target['gid']):
+        raise cart_error()
+    try:
+        remaining = read_cart(client, csrf_token, require_removal=True)
+    except HTTPException as exc:
+        # The POST has already happened: failed verification does not mean
+        # the removal failed, and must never invite an automatic retry.
+        raise HTTPException(exc.status_code, detail={**exc.detail, 'outcome': 'unknown'}) from None
+    if matching_rows(remaining, target):
+        raise cart_error('yuyutei_removal_not_confirmed', 409)
+    return remaining
 
 
 @router.delete('/cart', dependencies=[Depends(write_guard)])
 def remove(body=Depends(remove_input)):
     credentials = body.credentials
     target = body.model_dump(exclude={'credentials'})
-    def matches(item):
-        return all(item[key] == value for key, value in target.items())
-    with session_lock(credentials.csrf_token), httpx.Client(timeout=20, follow_redirects=False) as client:
-        client.cookies.set('laravel_session', credentials.cookie, domain='yuyu-tei.jp', path='/')
-        found = [item for item in read_cart(client, credentials.csrf_token, require_removal=True)['items'] if matches(item)]
-        if not found:
-            raise HTTPException(404, detail='yuyutei_cart_item_not_found')
-        if len(found) != 1:
-            raise HTTPException(409, detail={'type': 'yuyutei_cart_item_ambiguous'})
-        response = cart_request(client, 'POST', CART_SERVICE,
-            data={'mode': 'remove', 'CART_ITEM_ID': found[0]['_cart_item_id'], 'status': 'sell', 'type': body.type},
-            headers={'X-CSRF-TOKEN': credentials.csrf_token, 'Referer': CART_PAGE,
-                     'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'})
+    with cart_session(credentials.cookie, credentials.csrf_token) as client:
+        found = locate(read_cart(client, credentials.csrf_token, require_removal=True), target)
+        remaining = remove_row(client, credentials.csrf_token, target, found)
+        return write_result(remaining, removed=target, removed_quantity=found['quantity'])
+
+
+class QuantityRequest(RemoveInput):
+    quantity: int = Field(strict=True, ge=0, le=98)
+    credentials: CredentialsInput = Field(repr=False)
+
+
+async def quantity_input(request: Request):
+    return await parse_input(request, QuantityRequest)
+
+
+@router.put('/cart/quantity', dependencies=[Depends(write_guard)])
+def lower_quantity(body=Depends(quantity_input)):
+    # Resolve the current row under the session lock and send only the difference.
+    # A target (not a delta) keeps a repeated successful request from lowering twice.
+    credentials = body.credentials
+    target = body.model_dump(exclude={'credentials', 'quantity'})
+    with cart_session(credentials.cookie, credentials.csrf_token) as client:
+        snapshot = read_cart(client, credentials.csrf_token, require_removal=True)
+        found = locate(snapshot, target, allow_missing=body.quantity == 0)
+        if found is None:
+            return write_result(snapshot, **target, requested_quantity=0, before_quantity=0, after_quantity=0)
+        result = {**target, 'requested_quantity': body.quantity, 'before_quantity': found['quantity']}
+        if body.quantity == found['quantity']:
+            return write_result(snapshot, **result, after_quantity=found['quantity'])
+        if body.quantity > found['quantity']:
+            raise HTTPException(409, detail={**result, 'type': 'yuyutei_quantity_increase_unsupported'})
+        if body.quantity == 0:
+            remaining = remove_row(client, credentials.csrf_token, target, found)
+            return write_result(remaining, **result, after_quantity=0)
         try:
-            data = response.json()
-        except ValueError:
-            raise cart_error() from None
-        if not isinstance(data, dict) or not {'CART_ITEM_ID', 'GAME_ID', 'RESERVED_CHECK'} <= data.keys() or str(data['GAME_ID']) != str(body.gid):
-            raise cart_error()
-        try:
-            remaining = read_cart(client, credentials.csrf_token, require_removal=True)
+            data = post_cart_service(client, credentials.csrf_token, found, mode='add',
+                kind='' if target['type'] == 'normal' else target['type'],
+                counter=body.quantity - found['quantity'])
+            if (not isinstance(data, dict) or data.get('CART_ITEM_ID') != found['_cart_item_id']
+                    or data.get('cart_item_result') is not True):
+                raise cart_error()
         except HTTPException as exc:
-            # The POST has already happened: failed verification does not mean
-            # the removal failed, and must never invite an automatic retry.
-            raise HTTPException(exc.status_code, detail={**exc.detail, 'outcome': 'unknown'}) from None
-        if any(matches(item) for item in remaining['items']):
-            raise cart_error('yuyutei_removal_not_confirmed', 409)
-        return {'status': 'SUCCESS', 'removed': target, 'removed_quantity': found[0]['quantity'],
-                'cart': cart_result(remaining)}
+            raise HTTPException(exc.status_code, detail={**result, **exc.detail,
+                'outcome': 'unknown', 'after_quantity': None}) from None
+        try:
+            after = read_cart(client, credentials.csrf_token)
+        except HTTPException as exc:
+            raise HTTPException(exc.status_code, detail={**result, 'outcome': 'unknown', 'upstream_status': 'SUCCESS',
+                                                         'after_quantity': None, 'type': exc.detail['type']}) from None
+        matches = matching_rows(after, target)
+        count = matches[0]['quantity'] if len(matches) == 1 else (0 if not matches else None)
+        if count != body.quantity:
+            raise HTTPException(409, detail={**result, 'type': 'yuyutei_quantity_mismatch',
+                                             'outcome': 'unknown', 'after_quantity': count})
+        return write_result(after, **result, after_quantity=count)

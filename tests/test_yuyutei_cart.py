@@ -87,7 +87,12 @@ def test_credentials_are_request_scoped_and_never_stored(client, upstream):
 
 def test_add_uses_supplied_credentials_and_retains_protocol(client, upstream):
     response = client.post(BASE + '/cart', json={**CARD, 'credentials': SECRETS, 'counter': 2, 'credentials': SECRETS})
-    assert response.json() == {'status': 'SUCCESS', **CARD, 'counter': 2, 'kizu': 0,
+    result = response.json()
+    cart = result.pop('cart')
+    assert cart['total_quantity'] == 2 and cart['subtotal'] == 60
+    assert cart['complete'] is True and cart['warnings'] == []
+    assert '_cart_item_id' not in cart['items'][0]
+    assert result == {'status': 'SUCCESS', **CARD, 'counter': 2, 'kizu': 0,
         'requested_quantity': 2, 'before_quantity': 0, 'after_quantity': 2, 'observed_delta': 2, 'verification': 'verified'}
     request = [r for r in upstream[0] if r.method == 'POST'][-1]
     assert request.method == 'POST' and str(request.url) == CART_URL
@@ -426,3 +431,150 @@ def test_session_lock_does_not_block_other_sessions_and_releases_on_error():
     with session_lock('first-session'):
         pass
     assert _session_locks == {}
+
+
+QTY = BASE + '/cart/quantity'
+REMOVED = '{"CART_ITEM_ID":"itemValue5","GAME_ID":"56","RESERVED_CHECK":0}'
+
+
+CHANGED = '{"CART_ITEM_ID":"itemValue5","cart_item_result":true}'
+
+
+@pytest.mark.parametrize('quantity', [1, 2])
+@pytest.mark.parametrize('kind', ['normal', 'reserved'])
+def test_lower_quantity_sends_negative_difference(client, monkeypatch, quantity, kind):
+    calls = cart_sequence(monkeypatch, [(200, cart_html(quantity=3, kind=kind)), (200, CHANGED),
+                                        (200, cart_html(7, quantity=quantity, kind=kind))])
+    response = client.put(QTY, json={**CARD, 'type': kind, 'quantity': quantity, 'credentials': SECRETS})
+    assert response.status_code == 200
+    result = response.json()
+    assert (result['before_quantity'], result['after_quantity'], result['cart']['total_quantity']) == (3, quantity, quantity)
+    assert [r.method for r in calls] == ['GET', 'POST', 'GET']
+    assert str(calls[1].url).endswith('/cart_service')
+    payload = parse_qs(calls[1].content.decode(), keep_blank_values=True)
+    assert payload == {'mode': ['add'], 'CART_ITEM_ID': ['itemValue5'],
+                       'counter': [str(quantity - 3)], 'status': ['sell'],
+                       'type': ['' if kind == 'normal' else kind]}
+    assert calls[1].headers['x-csrf-token'] == SECRETS['csrf_token']
+
+
+def test_lower_quantity_to_zero_only_removes(client, monkeypatch):
+    calls = cart_sequence(monkeypatch, [(200, cart_html(quantity=1)), (200, REMOVED), (200, EMPTY_CART)])
+    response = client.put(QTY, json={**CARD, 'quantity': 0, 'credentials': SECRETS})
+    assert response.status_code == 200 and response.json()['after_quantity'] == 0
+    assert [r.method for r in calls] == ['GET', 'POST', 'GET']
+
+
+@pytest.mark.parametrize('quantity,status', [(3, 200), (4, 409)])
+def test_same_or_higher_target_never_mutates(client, monkeypatch, quantity, status):
+    calls = cart_sequence(monkeypatch, [(200, cart_html(quantity=3))])
+    response = client.put(QTY, json={**CARD, 'quantity': quantity, 'credentials': SECRETS})
+    assert response.status_code == status
+    assert [r.method for r in calls] == ['GET']
+
+
+@pytest.mark.parametrize('reply', [(200, 'bad-json'), (200, '{}'),
+    (200, '{"CART_ITEM_ID":"itemValue5","cart_item_result":false}'),
+    (200, '{"CART_ITEM_ID":"itemValue6","cart_item_result":true}'),
+    (419, ''), httpx.ReadTimeout('timeout')])
+def test_quantity_failure_never_retries_or_readds(client, monkeypatch, reply):
+    calls = cart_sequence(monkeypatch, [(200, cart_html(quantity=3)), reply])
+    response = client.put(QTY, json={**CARD, 'quantity': 2, 'credentials': SECRETS})
+    assert response.status_code in (409, 502, 504)
+    detail = response.json()['detail']
+    assert detail['outcome'] == 'unknown' and detail['after_quantity'] is None
+    assert [r.method for r in calls] == ['GET', 'POST']
+
+
+@pytest.mark.parametrize('page,status,count', [(cart_html(quantity=3), 409, 3),
+    (EMPTY_CART, 409, 0), ('broken', 502, None),
+    (EMPTY_CART.replace('alice-csrf', 'expired'), 409, None)])
+def test_quantity_verifies_actual_cart(client, monkeypatch, page, status, count):
+    calls = cart_sequence(monkeypatch, [(200, cart_html(quantity=3)), (200, CHANGED), (200, page)])
+    response = client.put(QTY, json={**CARD, 'quantity': 2, 'credentials': SECRETS})
+    assert response.status_code == status
+    assert response.json()['detail']['outcome'] == 'unknown'
+    assert response.json()['detail']['after_quantity'] == count
+    assert len(calls) == 3
+
+
+def test_repeating_target_does_not_decrement_again(client, monkeypatch):
+    calls = cart_sequence(monkeypatch, [(200, cart_html(quantity=3)), (200, CHANGED),
+        (200, cart_html(quantity=2)), (200, cart_html(quantity=2))])
+    for _ in range(2):
+        response = client.put(QTY, json={**CARD, 'quantity': 2, 'credentials': SECRETS})
+        assert response.status_code == 200
+    assert [r.method for r in calls] == ['GET', 'POST', 'GET', 'GET']
+
+
+def test_quantity_verification_separates_reserved_row(client, monkeypatch):
+    def page(quantity):
+        reserved = cart_html(8, quantity=7, kind='reserved').split('<div id="itemReservedInfo8">')[1].rsplit('</div>', 1)[0]
+        return cart_html(quantity=quantity).rsplit('</div>', 1)[0] + '<div id="itemReservedInfo8">' + reserved + '</div>'
+    cart_sequence(monkeypatch, [(200, page(3)), (200, CHANGED), (200, page(2))])
+    response = client.put(QTY, json={**CARD, 'quantity': 2, 'credentials': SECRETS})
+    assert response.status_code == 200
+    assert response.json()['after_quantity'] == 2
+    assert response.json()['cart']['total_quantity'] == 9
+
+
+@pytest.mark.parametrize('field,value', [('quantity', -1), ('quantity', 99), ('quantity', '1'),
+                                         ('quantity', None), ('type', 'other'), ('counter', 1)])
+def test_quantity_validation_never_calls_shop(client, upstream, field, value):
+    response = client.put(QTY, json={**CARD, 'quantity': 1, 'credentials': SECRETS, field: value})
+    assert response.status_code == 422 and response.json() == {'detail': 'invalid_yuyutei_request'}
+    assert upstream[0] == []
+
+
+@pytest.mark.parametrize('page', [EMPTY_CART, cart_html(cid='99999'), cart_html(kind='reserved')])
+def test_zero_missing_returns_current_cart_without_write(client, monkeypatch, page):
+    calls = cart_sequence(monkeypatch, [(200, page)])
+    response = client.put(QTY, json={**CARD, 'quantity': 0, 'credentials': SECRETS})
+    assert response.status_code == 200
+    result = response.json()
+    assert result['before_quantity'] == result['after_quantity'] == 0
+    assert result['cart']['complete'] is True
+    assert result['cart']['total_quantity'] == (0 if page == EMPTY_CART else 3)
+    assert [r.method for r in calls] == ['GET']
+
+
+def test_zero_repeated_after_removal_is_success(client, monkeypatch):
+    calls = cart_sequence(monkeypatch, [(200, cart_html()), (200, REMOVED), (200, EMPTY_CART), (200, EMPTY_CART)])
+    for _ in range(2):
+        response = client.put(QTY, json={**CARD, 'quantity': 0, 'credentials': SECRETS})
+        assert response.status_code == 200
+        assert response.json()['cart']['items'] == []
+    assert [r.method for r in calls] == ['GET', 'POST', 'GET', 'GET']
+
+
+@pytest.mark.parametrize('method,body', [('PUT', {'quantity': 1}), ('DELETE', {})])
+def test_missing_positive_target_and_delete_still_404(client, monkeypatch, method, body):
+    calls = cart_sequence(monkeypatch, [(200, EMPTY_CART)])
+    response = client.request(method, QTY if method == 'PUT' else BASE + '/cart',
+        json={**CARD, **body, 'credentials': SECRETS})
+    assert response.status_code == 404
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize('page,status', [('broken', 502), (EMPTY_CART.replace('alice-csrf', 'expired'), 409),
+    (cart_html().replace('value="3"', 'value="invalid"'), 502),
+    (cart_html().replace('</div></div>', '</div><div id="itemInfo6">' + cart_html(6).split('<div id="itemInfo6">')[1]), 409)])
+def test_zero_does_not_hide_unreadable_or_ambiguous_cart(client, monkeypatch, page, status):
+    calls = cart_sequence(monkeypatch, [(200, page)])
+    response = client.put(QTY, json={**CARD, 'quantity': 0, 'credentials': SECRETS})
+    assert response.status_code == status
+    assert len(calls) == 1
+
+
+def test_add_returns_verified_snapshot_and_replays_it_without_upstream(client, monkeypatch):
+    calls = cart_sequence(monkeypatch, [(200, EMPTY_CART), (200, '{"status":"SUCCESS"}'), (200, cart_html(quantity=1))])
+    body = {**CARD, 'credentials': SECRETS}
+    headers = {'Idempotency-Key': 'snapshot-replay'}
+    first = client.post(BASE + '/cart', json=body, headers=headers)
+    assert first.status_code == 200
+    assert first.json()['cart']['total_quantity'] == 1
+    assert first.json()['cart']['items'][0]['cid'] == CARD['cid']
+    replay = client.post(BASE + '/cart', json=body, headers=headers)
+    assert replay.json() == first.json()
+    assert replay.headers['idempotency-replayed'] == 'true'
+    assert [r.method for r in calls] == ['GET', 'POST', 'GET']

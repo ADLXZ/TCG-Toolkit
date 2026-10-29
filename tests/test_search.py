@@ -281,3 +281,12 @@ def test_hidden_stock(cls, source, active, expected):
     assert item.stock_quantity == expected
     assert item.stock_status == (StockStatus.OUT_OF_STOCK if expected == 0 else StockStatus.IN_STOCK)
     assert item.stock_text == '在庫 : ◯'
+
+
+@pytest.mark.parametrize("cls,source,keyword,gid", [(WSRSearcher, "wsr_1", "OS01", 56)])
+def test_cart_identity_from_hidden_fields(cls, source, keyword, gid):
+    with client_for(fixture(source), []) as client, cls(client=client) as searcher:
+        item = searcher.search_page(keyword).items[0]
+    assert item.cart["gid"] == gid and item.cart["kizu"] == 0
+    assert item.product_url.endswith(f"/{item.cart['ver']}/{item.cart['cid']}")
+    assert item.to_dict()["cart"] == item.cart
