@@ -130,7 +130,7 @@
 <div id="errors" role="alert"></div>
 <div id="search-filters"></div>
 <div class="panel table-panel" id="list-view">
-<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="numeric" data-i18n="cards_owned_column"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="rows"></tbody></table></div>
 </div>
 <div class="card-grid" hidden="" id="grid-view"></div>
 <div class="empty" id="empty"><i class="bi bi-search"></i><h3 data-i18n="no_results"></h3></div>
@@ -148,7 +148,7 @@
 <button id="favorites-retry" type="button" class="secondary" hidden><i class="bi bi-arrow-counterclockwise"></i><span data-i18n="favorite_retry"></span></button>
 <div id="favorites-filters"></div>
 <div class="panel table-panel" id="favorites-list">
-<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="favorites-rows"></tbody></table></div>
+<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="numeric" data-i18n="cards_owned_column"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="favorites-rows"></tbody></table></div>
 </div>
 <div id="favorites-grid" class="card-grid" hidden></div>
 <div id="favorites-empty" class="empty" hidden><i class="bi bi-star"></i><h3></h3></div>
@@ -209,6 +209,29 @@
 <button id="cards-existing" type="button" class="text-button dialog-existing" hidden><i class="bi bi-pencil"></i><span data-i18n="cards_existing"></span></button>
 <button id="cards-cancel" type="button" class="secondary" data-i18n="detail_cancel"></button>
 <button id="cards-save" type="submit"><i class="bi bi-check-lg"></i><span data-i18n="cards_save"></span></button>
+</div>
+</form>
+</dialog>
+<dialog id="quantity-dialog" class="form-dialog quantity-dialog" aria-labelledby="quantity-title" aria-describedby="quantity-name">
+<form id="quantity-form" novalidate>
+<div class="dialog-head"><h2 id="quantity-title" data-i18n="cards_quantity_edit"></h2></div>
+<div class="quantity-card" id="quantity-card"></div>
+<p id="quantity-name" class="quantity-name"></p>
+<div class="quantity-stepper">
+<button type="button" id="quantity-decrease" class="secondary icon-only" data-i18n-aria-label="cards_quantity_decrease" data-i18n-title="cards_quantity_decrease"><i class="bi bi-dash-lg"></i></button>
+<input id="quantity-input" type="number" min="0" step="1" max="9007199254740991" inputmode="numeric" required data-i18n-aria-label="cards_quantity"/>
+<button type="button" id="quantity-increase" class="secondary icon-only" data-i18n-aria-label="cards_quantity_increase" data-i18n-title="cards_quantity_increase"><i class="bi bi-plus-lg"></i></button>
+</div>
+<div class="quantity-quick" role="group" data-i18n-aria-label="cards_quantity_edit">
+<button type="button" class="secondary compact" data-step="-10">−10</button>
+<button type="button" class="secondary compact" data-step="-5">−5</button>
+<button type="button" class="secondary compact" data-step="5">+5</button>
+<button type="button" class="secondary compact" data-step="10">+10</button>
+</div>
+<p id="quantity-error" class="dialog-error" role="alert"></p>
+<div class="dialog-actions">
+<button id="quantity-cancel" type="button" class="secondary" data-i18n="detail_cancel"></button>
+<button id="quantity-save" type="submit"><i class="bi bi-check-lg"></i><span data-i18n="cards_save"></span></button>
 </div>
 </form>
 </dialog>

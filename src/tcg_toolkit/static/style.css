@@ -626,3 +626,30 @@ button.official-card.chosen, button.official-card.chosen:hover { border-color: v
 }
 @media (prefers-reduced-motion: reduce) { .official-card.skeleton { animation: none; } button.official-card:hover { transform: none; } }
 
+/* Quantity quick edit */
+button.cards-qty {
+  height: auto; padding: 4px 8px; margin: -4px -8px; gap: 6px;
+  background: transparent; border: 1px dashed transparent; border-radius: var(--radius-md);
+  color: inherit; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+button.cards-qty:hover { background: var(--color-hover); border-color: var(--color-border-strong); color: var(--color-text); }
+td.numeric button.cards-qty { margin-right: -8px; }
+td.muted button.cards-qty, .card.out_of_stock button.cards-qty { color: var(--color-text-subtle); }
+.quantity-dialog { width: min(380px, 92vw); }
+.quantity-card { display: flex; align-items: center; gap: 8px; }
+.quantity-name { margin: 8px 0 18px; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.quantity-stepper { display: flex; align-items: center; gap: 10px; }
+.quantity-stepper button { width: 44px; height: 44px; font-size: 18px; }
+.quantity-stepper input { flex: 1; height: 44px; font-size: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.quantity-quick { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.quantity-quick button { font-variant-numeric: tabular-nums; }
+
+/* Owned quantity (from My cards) in search and favorites */
+td.owned-cell { font-weight: 600; }
+td.owned-cell.muted { font-weight: 400; color: var(--color-text-subtle); }
+.owned-badge {
+  position: absolute; left: 8px; bottom: 8px; z-index: 3; display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--color-on-primary); background: color-mix(in srgb, var(--gray-900) 82%, transparent);
+  border-radius: var(--radius-pill); pointer-events: none;
+}

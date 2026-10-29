@@ -88,13 +88,50 @@ function cardActions(row) {
     iconButton('bi-trash3', t('cards_delete'), () => confirmDelete(row), locked));
   return actions;
 }
+// Clicking a quantity opens a small popup that changes only the quantity.
+function quantityButton(row, label, iconName = '') {
+  const button = node('button', '', 'cards-qty'); button.type = 'button';
+  if (iconName) button.append(icon(iconName));
+  button.append(label);
+  button.title = t('cards_quantity_edit'); button.setAttribute('aria-label', `${t('cards_quantity_edit')}: ${row.name} (${row.quantity})`);
+  button.disabled = inventory.state.busy || inventory.state.loading;
+  button.addEventListener('click', () => openQuantity(row));
+  return button;
+}
+let quantityTarget = null;
+function openQuantity(row) {
+  if (inventory.state.busy) return;
+  quantityTarget = row.id;
+  $('quantity-card').replaceChildren(node('span', row.game, 'game-tag'), rarityBadge(row), node('span', row.card_number, 'mono'));
+  $('quantity-name').textContent = row.name;
+  $('quantity-input').value = row.quantity; $('quantity-error').textContent = '';
+  $('quantity-dialog').showModal();
+  $('quantity-input').focus(); $('quantity-input').select();
+}
+function stepQuantity(delta) {
+  const input = $('quantity-input'), value = Math.max(0, (Number.parseInt(input.value, 10) || 0) + delta);
+  input.value = value; input.focus();
+}
+async function saveQuantity() {
+  const value = Number($('quantity-input').value);
+  if (!$('quantity-input').checkValidity() || !Number.isInteger(value)) { $('quantity-error').textContent = t('cards_invalid'); return; }
+  const row = inventory.state.records.find(card => card.id === quantityTarget);
+  if (!row) { $('quantity-dialog').close(); return; }
+  if (value === row.quantity) { $('quantity-dialog').close(); return; }
+  inventory.edit(row.id); inventory.state.draft.quantity = value;
+  $('quantity-save').disabled = true;
+  await inventory.save();
+  $('quantity-save').disabled = false;
+  if (inventory.state.error) { $('quantity-error').textContent = t(inventory.state.error); inventory.edit(); return; }
+  $('quantity-dialog').close();
+}
 function cardRow(row) {
   const tr = document.createElement('tr');
   const cell = (child, className = '') => {const td = node('td', '', className); td.append(child); tr.append(td);};
   const product = node('div', '', 'product-summary');
   product.append(cardImage(row, {noReferrer: true}), node('span', row.name, 'cards-name'));
   cell(node('span', row.game, 'game-tag')); cell(rarityBadge(row)); cell(row.card_number, 'mono'); cell(product);
-  cell(number(row.quantity), `numeric${row.quantity ? '' : ' muted'}`); cell(row.notes, 'cards-notes');
+  cell(quantityButton(row, number(row.quantity)), `numeric${row.quantity ? '' : ' muted'}`); cell(row.notes, 'cards-notes');
   cell(cardActions(row), 'action-col');
   return tr;
 }
@@ -102,7 +139,7 @@ function cardTile(row) {
   const card = node('article', '', `card${row.quantity ? '' : ' out_of_stock'}`);
   const tags = node('div', '', 'card-tags'); tags.append(node('span', row.game, 'game-tag'), rarityBadge(row));
   const top = node('div', '', 'card-top'); top.append(tags, node('span', row.card_number, 'mono'));
-  const quantity = node('span', '', 'cards-qty'); quantity.append(icon('bi-collection'), t('cards_owned', {quantity: number(row.quantity)}));
+  const quantity = quantityButton(row, t('cards_owned', {quantity: number(row.quantity)}), 'bi-collection');
   const bottom = node('div', '', 'card-bottom'); bottom.append(quantity, cardActions(row));
   card.append(top, cardImage(row, {noReferrer: true}), node('span', row.name, 'card-name'), bottom);
   if (row.notes) card.append(node('p', row.notes, 'cards-notes'));
@@ -127,8 +164,30 @@ function openEditor(id = '') {
   if (!editorOpen()) $('card-dialog').showModal();
   $('card-game').focus();
 }
+// Owned quantities for search and favorites. Search uses game codes (wsr, chaos),
+// the inventory uses display names (WSR, ChaosTCG); both reduce to one key.
+const gameKey = game => ({chaos: 'chaostcg'})[game.trim().toLowerCase()] ?? game.trim().toLowerCase();
+const fold = value => (value ?? '').trim().toLowerCase();
+let ownedExact = new Map(), ownedByNumber = new Map(), ownedSignature = '';
+function indexOwned(records) {
+  const signature = records.map(row => `${row.id}:${row.quantity}:${row.game}:${row.card_number}:${row.rarity}`).join('|');
+  if (signature === ownedSignature) return;
+  ownedSignature = signature; ownedExact = new Map(); ownedByNumber = new Map();
+  for (const row of records) {
+    const base = `${gameKey(row.game)}|${fold(row.card_number)}`, exact = `${base}|${fold(row.rarity)}`;
+    ownedExact.set(exact, (ownedExact.get(exact) ?? 0) + row.quantity);
+    ownedByNumber.set(base, (ownedByNumber.get(base) ?? 0) + row.quantity);
+  }
+  document.dispatchEvent(new CustomEvent('inventorychange'));
+}
+// Quantity of this card in My cards: by game, number and rarity, or by game and number when rarity is unknown.
+export function ownedQuantity(item) {
+  const base = `${gameKey(item.game)}|${fold(item.card_number)}`;
+  return item.rarity ? ownedExact.get(`${base}|${fold(item.rarity)}`) ?? 0 : ownedByNumber.get(base) ?? 0;
+}
 function render() {
   const state = inventory.state, open = editorOpen();
+  indexOwned(state.records);
   // Editor dialog
   gameOptions();
   for (const field of fields) {
@@ -200,10 +259,17 @@ $('cards-reset').addEventListener('click', () => { filters = blankFilters(); $('
 // app.js owns the shared list/grid choice and announces every change.
 document.addEventListener('viewchange', render);
 $('language').addEventListener('change', render);
+$('quantity-form').addEventListener('submit', event => { event.preventDefault(); saveQuantity(); });
+$('quantity-decrease').addEventListener('click', () => stepQuantity(-1));
+$('quantity-increase').addEventListener('click', () => stepQuantity(1));
+document.querySelectorAll('#quantity-dialog [data-step]').forEach(button => button.addEventListener('click', () => stepQuantity(Number(button.dataset.step))));
+$('quantity-cancel').addEventListener('click', () => $('quantity-dialog').close());
+$('quantity-dialog').addEventListener('cancel', event => { if (inventory.state.busy) event.preventDefault(); });
+$('quantity-dialog').addEventListener('close', () => { quantityTarget = null; });
 export function clearCards() {
   clearOfficial();
   filters = blankFilters(); $('cards-query').value = '';
-  $('card-dialog').close(); $('cards-delete-dialog').close(); inventory.clear();
+  $('card-dialog').close(); $('cards-delete-dialog').close(); $('quantity-dialog').close(); inventory.clear();
 }
 export function activateCards(api) {officialAPI = api; clearCards(); inventory.activate(api);}
 

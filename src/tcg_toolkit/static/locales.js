@@ -2,6 +2,11 @@ export const messages = {
   "en": {
     "cards_image": "Image",
     "cards_owned": "Owned {quantity}",
+    "cards_owned_column": "Owned",
+    "cards_owned_badge": "Owned {quantity}",
+    "cards_quantity_edit": "Adjust quantity",
+    "cards_quantity_decrease": "Decrease",
+    "cards_quantity_increase": "Increase",
     "cards_image_url": "Thumbnail URL (optional)",
     "marketplace_search": "Search YuYu-Tei (unofficial data)",
     "marketplace_title": "Unofficial data (from YuYu-Tei)",
@@ -184,6 +189,11 @@ export const messages = {
   "zh-CN": {
     "cards_image": "图片",
     "cards_owned": "持有 {quantity} 张",
+    "cards_owned_column": "持有",
+    "cards_owned_badge": "持有 {quantity}",
+    "cards_quantity_edit": "调整数量",
+    "cards_quantity_decrease": "减少",
+    "cards_quantity_increase": "增加",
     "cards_image_url": "缩略图地址（可留空）",
     "marketplace_search": "搜索游游亭（非官方数据）",
     "marketplace_title": "非官方数据（来自游游亭）",

@@ -1,4 +1,4 @@
-import {clearCards, activateCards} from './cards-ui.js';
+import {clearCards, activateCards, ownedQuantity} from './cards-ui.js';
 import {createFavorites, cardKey} from './favorites.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {loadResults} from './logic.js';
@@ -203,12 +203,15 @@ function renderFavorites() {
 $('favorites-refresh').addEventListener('click', () => favorites.refreshAll());
 $('favorites-retry').addEventListener('click', () => favorites.load());
 window.addEventListener('hashchange', () => {render(); renderFavorites();});
+document.addEventListener('inventorychange', () => {render(); renderFavorites();});
 function tableRow(item) {
   const row = document.createElement('tr');
   const cell = (child, className = '') => {const td = el('td', className); td.append(child); row.append(td);};
   const product = el('div', 'product-summary'); product.append(cardImage(item), cardLink(item));
   cell(el('span', 'game-tag', gameLabel(item.game))); cell(rarityBadge(item)); cell(item.card_number, 'mono'); cell(product);
-  cell(priceDisplay(item), 'numeric'); cell(stockBadge(item)); cell(favoriteCell(item), 'action-col');
+  const owned = ownedQuantity(item);
+  cell(priceDisplay(item), 'numeric'); cell(stockBadge(item));
+  cell(owned ? owned.toLocaleString(getLanguage()) : '—', `numeric owned-cell${owned ? '' : ' muted'}`); cell(favoriteCell(item), 'action-col');
   return row;
 }
 function gridCard(item) {
@@ -217,6 +220,8 @@ function gridCard(item) {
   const top = el('div', 'card-top'); top.append(tags, el('span', 'mono', item.card_number));
   const bottom = el('div', 'card-bottom'); bottom.append(priceDisplay(item), stockBadge(item));
   const image = cardImage(item); image.append(favoriteToggle(item));
+  const owned = ownedQuantity(item);
+  if (owned) { const badge = el('span', 'owned-badge'); badge.append(icon('bi-collection'), t('cards_owned_badge', {quantity: owned.toLocaleString(getLanguage())})); image.append(badge); }
   card.append(top, image, cardLink(item, 'card-name'), bottom);
   const meta = favoriteMeta(item);
   if (meta) {
