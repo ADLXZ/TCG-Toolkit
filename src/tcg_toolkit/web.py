@@ -16,6 +16,7 @@ from .external import CurrencyClient, CurrencyConfigError, CurrencyRequestError,
 from .auth.routes import router as auth_router, current_user, initialize_auth
 from .favorites import router as favorites_router
 from .cards import router as cards_router
+from .official import router as official_router
 
 
 @asynccontextmanager
@@ -40,6 +41,7 @@ app.add_middleware(BrowserCORS)
 app.include_router(auth_router)
 app.include_router(favorites_router)
 app.include_router(cards_router)
+app.include_router(official_router)
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher, Game.WS: WSSearcher, Game.PM: PMSearcher}
 
 

@@ -46,3 +46,18 @@ test('old account load and mutation responses cannot repopulate state', async ()
   resolve(reply(card)); await saving;
   assert.deepEqual(cards.state.records, []); assert.equal(cards.state.draft.name, ''); assert.equal(cards.state.ready, false);
 });
+
+test('thumbnail survives editing and save, and resets for a new card', async () => {
+  const saved = {...card, image_url: 'https://example.com/card.png'};
+  let submitted;
+  const cards = createCards(() => {});
+  await cards.activate(async (_, options) => {
+    if (options.method === 'GET') return reply({items: [saved]});
+    submitted = JSON.parse(options.body); return reply({...saved, ...submitted});
+  });
+  cards.edit(saved.id); assert.equal(cards.state.draft.image_url, saved.image_url);
+  cards.state.draft.quantity = 6; await cards.save();
+  assert.equal(submitted.image_url, saved.image_url);
+  assert.equal(cards.state.records[0].image_url, saved.image_url);
+  assert.equal(cards.state.draft.image_url, '');
+});

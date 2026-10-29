@@ -1,4 +1,4 @@
-export const blankCard = () => ({game: '', card_number: '', rarity: '', name: '', quantity: 1, notes: ''});
+export const blankCard = () => ({game: '', card_number: '', rarity: '', name: '', quantity: 1, notes: '', image_url: ''});
 const key = value => value.trim().toLowerCase();
 export function filterCards(rows, {query = '', game = '', rarity = ''} = {}) {
   return rows.filter(row => (!game || key(row.game) === key(game)) && (!rarity || key(row.rarity) === key(rarity)) &&
@@ -47,7 +47,7 @@ export function createCards(onChange) {
     if (state.busy) return;
     const row = state.records.find(row => row.id === id);
     if (id && !row) return;
-    state.editing = id; state.draft = row ? Object.fromEntries(Object.keys(blankCard()).map(k => [k, row[k]])) : blankCard();
+    state.editing = id; state.draft = row ? Object.fromEntries(Object.keys(blankCard()).map(k => [k, row[k] ?? blankCard()[k]])) : blankCard();
     state.error = ''; state.duplicate = ''; onChange();
   }
   async function mutate(removeId) {

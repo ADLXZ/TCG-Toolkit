@@ -1,11 +1,11 @@
 import {clearCards, activateCards} from './cards-ui.js';
 import {createFavorites, cardKey} from './favorites.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
-import {loadResults, largeImageUrl} from './logic.js';
+import {loadResults} from './logic.js';
+import {rarityBadge, cardImage} from './card-view.js';
 import {createFilterPanel} from './filters.js';
 import {readHistory, appendHistory, saveHistory} from './history.js';
 import {fetchRate, formatPrice} from './currency.js';
-import {rarityTier, rarityDescription} from './rarities.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
 const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg", "ws": "ws", "pm": "pm"};
@@ -107,6 +107,8 @@ function setView(next) {
   view = next; localStorage.setItem('view', view);
   document.querySelectorAll('[data-view]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
   render(); renderFavorites();
+  // Other pages (My cards) re-render on this instead of relying on click-handler order.
+  document.dispatchEvent(new CustomEvent('viewchange', {detail: view}));
 }
 function cardLink(item, className = '') {
   const link = el('a', className, item.name);
@@ -132,87 +134,6 @@ function stockBadge(item) {
   badge.append(icon(stockIcons[item.stock_status]),
     t(stockKeys[item.stock_status]) + (quantity === null ? '' : ` (${quantity})`));
   return badge;
-}
-function rarityBadge(item) {
-  if (!item.rarity) return '';
-  const badge = el('span', `rarity-tag tier-${rarityTier(item.game, item.rarity)}`, item.rarity);
-  badge.title = rarityDescription(item.game, item.rarity, getLanguage()) ?? t('rarity_value', {rarity: item.rarity});
-  return badge;
-}
-function cardImage(item) {
-  const frame = el('span', 'card-image');
-  const fallback = el('span', 'image-fallback', t('no_image'));
-  frame.append(fallback);
-  if (!item.image_url) return frame;
-  let url;
-  try { url = new URL(item.image_url); } catch { return frame; }
-  if (!['http:', 'https:'].includes(url.protocol)) return frame;
-  const image = document.createElement('img');
-  image.alt = item.name; image.loading = 'lazy'; image.decoding = 'async';
-  image.addEventListener('load', () => { fallback.hidden = true; });
-  image.addEventListener('error', () => { image.hidden = true; fallback.hidden = false; frame.classList.remove('zoomable'); frame.removeAttribute('role'); frame.removeAttribute('tabindex'); }, {once: true});
-  image.src = url.href;
-  const tilt = el('span', 'tilt'); tilt.append(image, el('span', 'glare'));
-  frame.append(tilt);
-  if (canTilt.matches) attachTilt(frame, tilt, image, largeImageUrl(url.href));
-  if (largeImageUrl(url.href)) {
-    frame.classList.add('zoomable'); frame.tabIndex = 0; frame.setAttribute('role', 'button');
-    frame.setAttribute('aria-label', t('image_preview', {name: item.name})); frame.title = t('image_preview', {name: item.name});
-    // Buttons inside the frame (the grid favorite star) keep their own action.
-    frame.addEventListener('click', event => { if (!event.target.closest('button')) openPreview(item, url.href); });
-    frame.addEventListener('keydown', event => {
-      if (event.target === frame && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); openPreview(item, url.href); }
-    });
-  }
-  return frame;
-}
-// Only for a real mouse, and never when the system asks for reduced motion.
-const canTilt = matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
-const TILT_DEGREES = 12;
-// The tilt scales the card up, so the first hover fetches the original image and
-// swaps it in only once fully decoded; on failure the thumbnail simply stays.
-function upgradeImage(image, large) {
-  const full = new Image();
-  full.src = large;
-  full.decode().then(() => { if (image.isConnected && !image.hidden) image.src = large; }, () => {});
-}
-function attachTilt(frame, tilt, image, large) {
-  let frameRequest = 0, pointer = null, upgraded = !large;
-  const apply = () => {
-    frameRequest = 0;
-    const box = tilt.getBoundingClientRect();
-    const x = Math.min(Math.max((pointer.x - box.left) / box.width, 0), 1);
-    const y = Math.min(Math.max((pointer.y - box.top) / box.height, 0), 1);
-    tilt.style.setProperty('--ry', `${(x - .5) * 2 * TILT_DEGREES}deg`);
-    tilt.style.setProperty('--rx', `${(.5 - y) * 2 * TILT_DEGREES}deg`);
-    tilt.style.setProperty('--mx', `${x * 100}%`);
-    tilt.style.setProperty('--my', `${y * 100}%`);
-  };
-  frame.addEventListener('pointermove', event => {
-    if (event.pointerType !== 'mouse' || event.target.closest('button')) return;
-    pointer = {x: event.clientX, y: event.clientY};
-    tilt.classList.add('active');
-    if (!upgraded) { upgraded = true; upgradeImage(image, large); }
-    frameRequest ||= requestAnimationFrame(apply);
-  });
-  frame.addEventListener('pointerleave', () => {
-    cancelAnimationFrame(frameRequest); frameRequest = 0;
-    tilt.classList.remove('active');
-    for (const name of ['--rx', '--ry', '--mx', '--my']) tilt.style.removeProperty(name);
-  });
-}
-let previewRequest = 0;
-function openPreview(item, thumbnail) {
-  const image = $('preview-image'), current = ++previewRequest;
-  // Show the thumbnail at once, then swap in the full image when it has loaded.
-  image.src = thumbnail; image.alt = item.name;
-  $('preview-name').textContent = item.name; $('preview-number').textContent = item.card_number;
-  $('image-dialog').classList.add('loading');
-  const full = new Image();
-  full.onload = () => { if (current === previewRequest) { image.src = full.src; $('image-dialog').classList.remove('loading'); } };
-  full.onerror = () => { if (current === previewRequest) $('image-dialog').classList.remove('loading'); };
-  full.src = largeImageUrl(thumbnail);
-  $('image-dialog').showModal();
 }
 function favoriteToggle(item) {
   const saved = favorites.find(item), busy = favorites.state.busy.has(cardKey(item));
@@ -370,10 +291,6 @@ $('language').addEventListener('change', () => {setLanguage($('language').value)
 $('detail-cancel').addEventListener('click', () => $('detail-dialog').close());
 $('detail-confirm').addEventListener('click', () => $('detail-dialog').close());
 $('detail-dialog').addEventListener('close', () => $('detail-confirm').removeAttribute('href'));
-$('preview-close').addEventListener('click', () => $('image-dialog').close());
-// A click on the backdrop lands on the dialog element itself.
-$('image-dialog').addEventListener('click', event => { if (event.target === $('image-dialog')) $('image-dialog').close(); });
-$('image-dialog').addEventListener('close', () => { previewRequest++; $('preview-image').removeAttribute('src'); });
 refreshLanguage(); setView(view);
 
 export function clearUser() {

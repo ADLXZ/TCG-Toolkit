@@ -91,8 +91,33 @@ def test_v2_migration_preserves_data(tmp_path):
             PRAGMA user_version = 2;''')
     for _ in range(2):
         with UserStore(path).connect() as db:
-            assert db.execute('PRAGMA user_version').fetchone()[0] == 3
+            assert db.execute('PRAGMA user_version').fetchone()[0] == 4
             assert db.execute('SELECT username FROM users').fetchone()[0] == 'alice'
             assert db.execute('SELECT token_hash FROM sessions').fetchone()[0] == 'token'
             assert db.execute('SELECT id FROM favorites').fetchone()[0] == 'f'
             assert db.execute('SELECT count(*) FROM owned_cards').fetchone()[0] == 0
+
+
+def test_image_persistence_update_and_clear(client):
+    image = 'https://example.com/card.png'
+    saved = client.post('/api/cards', json={**CARD, 'image_url': image}).json()
+    assert saved['image_url'] == image
+    assert client.get('/api/cards').json()['items'][0]['image_url'] == image
+    with UserStore(app.state.auth.store.path).connect() as db:
+        assert db.execute('SELECT image_url FROM owned_cards WHERE id=?', (saved['id'],)).fetchone()[0] == image
+    response = client.put('/api/cards/' + saved['id'], json={**CARD, 'image_url': None})
+    assert response.status_code == 200 and response.json()['image_url'] == ''
+    for invalid in ['javascript:alert(1)', 'data:image/png;base64,test', '/relative.png']:
+        assert client.put('/api/cards/' + saved['id'], json={**CARD, 'image_url': invalid}).status_code == 422
+
+
+def test_v3_image_migration_preserves_cards(tmp_path):
+    path = tmp_path / 'v3.sqlite3'
+    with sqlite3.connect(path) as db:
+        db.executescript("""CREATE TABLE owned_cards (id TEXT PRIMARY KEY, name TEXT, quantity INTEGER);
+            INSERT INTO owned_cards VALUES ('existing', 'Saved card', 7);
+            PRAGMA user_version = 3;""")
+    with UserStore(path).connect() as db:
+        row = db.execute('SELECT * FROM owned_cards').fetchone()
+        assert row['id'] == 'existing' and row['quantity'] == 7 and row['image_url'] == ''
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 4

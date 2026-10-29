@@ -123,7 +123,7 @@ def test_v1_migration_preserves_existing_data(tmp_path):
             INSERT INTO sessions VALUES ('token', 'u', 9999999999);
             PRAGMA user_version = 1;''')
     with UserStore(path).connect() as db:
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 3
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 4
         assert db.execute('SELECT username FROM users').fetchone()[0] == 'alice'
         assert db.execute('SELECT token_hash FROM sessions').fetchone()[0] == 'token'
         assert db.execute('SELECT count(*) FROM favorites').fetchone()[0] == 0

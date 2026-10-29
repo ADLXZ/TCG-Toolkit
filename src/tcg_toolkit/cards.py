@@ -2,6 +2,7 @@
 import sqlite3
 import time
 import uuid
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
@@ -20,6 +21,22 @@ class CardInput(BaseModel):
     name: str = Field(min_length=1)
     quantity: int = Field(default=1, strict=True, ge=0, le=9007199254740991)
     notes: str = ''
+    image_url: str = ''
+
+    @field_validator('image_url', mode='before')
+    @classmethod
+    def image_location(cls, value):
+        if value is None:
+            return ''
+        if not isinstance(value, str):
+            raise ValueError('Invalid image URL')
+        value = value.strip()
+        if value:
+            url = urlsplit(value)
+            if url.scheme not in ('http', 'https') or not url.hostname or url.username or url.password:
+                raise ValueError('Image URL must be HTTP or HTTPS')
+        return value
+
 
     @field_validator('game', 'card_number', 'rarity', 'name', 'notes')
     @classmethod
@@ -32,7 +49,7 @@ class CardInput(BaseModel):
 
 def record(row):
     return {key: row[key] for key in ('id', 'game', 'card_number', 'rarity', 'name',
-                                    'quantity', 'notes', 'created_at', 'updated_at')}
+                                    'quantity', 'notes', 'image_url', 'created_at', 'updated_at')}
 
 
 def owned(db, user_id, card_id):
@@ -68,8 +85,8 @@ def add(body: CardInput, request: Request, user=Depends(current_user)):
     card_id, now = str(uuid.uuid4()), int(time.time())
     with request.app.state.auth.store.connect() as db:
         try:
-            db.execute('INSERT INTO owned_cards VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                       (card_id, user['id'], *values(body), now, now))
+            db.execute('INSERT INTO owned_cards VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                       (card_id, user['id'], *values(body), now, now, body.image_url))
         except sqlite3.IntegrityError:
             conflict(db, user['id'], body)
             raise
@@ -82,8 +99,8 @@ def update(card_id: str, body: CardInput, request: Request, user=Depends(current
         owned(db, user['id'], card_id)
         try:
             db.execute('''UPDATE owned_cards SET game=?, card_number=?, rarity=?, name=?, quantity=?,
-                notes=?, game_key=?, number_key=?, rarity_key=?, updated_at=? WHERE user_id=? AND id=?''',
-                (*values(body), int(time.time()), user['id'], card_id))
+                notes=?, game_key=?, number_key=?, rarity_key=?, image_url=?, updated_at=? WHERE user_id=? AND id=?''',
+                (*values(body), body.image_url, int(time.time()), user['id'], card_id))
         except sqlite3.IntegrityError:
             conflict(db, user['id'], body)
             raise
