@@ -259,3 +259,25 @@ def test_ws_pm_real_pages(cls, game, number, price, rarity):
     assert calls[0].url.path == f"/sell/{game.value}/s/search"
     assert result.next_page == 2
     assert result.to_dict()["items"][0]["game"] == game.value
+
+
+@pytest.mark.parametrize('cls,source', [(WSRSearcher, 'wsr_1'), (WSSearcher, 'ws_1'), (LyceeSearcher, 'lo_1'), (ChaosTCGSearcher, 'chaos_1'), (PMSearcher, 'pm_1')])
+@pytest.mark.parametrize('active,expected', [('27', 27), ('0', 0), (' 8 ', 8), ('', None), ('invalid', None), ('-1', None), (None, None)])
+def test_hidden_stock(cls, source, active, expected):
+    soup = BeautifulSoup(fixture(source), 'html.parser')
+    card = soup.select_one('.card-product')
+    card.select_one('.cart_sell_zaiko').string = '在庫 : ◯'
+    for field in card.select('input.cart_active'):
+        field.extract()
+    if active is not None:
+        field = soup.new_tag('input', attrs={'class': 'cart_active', 'value': active})
+        card.append(field)
+    # Purchase cap must not be mistaken for the actual inventory.
+    limit = card.select_one('.cart_limit')
+    if limit:
+        limit['value'] = '4'
+    with client_for(str(soup)) as client, cls(client=client) as searcher:
+        item = searcher.search_page('test').items[0]
+    assert item.stock_quantity == expected
+    assert item.stock_status == (StockStatus.OUT_OF_STOCK if expected == 0 else StockStatus.IN_STOCK)
+    assert item.stock_text == '在庫 : ◯'

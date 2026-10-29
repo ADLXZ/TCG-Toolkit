@@ -110,6 +110,11 @@ class BaseSearcher:
             raise ValueError("Missing product URL")
         stock_text = _text(card.select_one(".cart_sell_zaiko"))
         stock_status, stock_quantity = self.parse_stock(stock_text)
+        active = card.select_one('input.cart_active')
+        active_value = str(active.get('value', '')).strip() if active else ''
+        if re.fullmatch(r'[0-9]+', active_value):
+            stock_quantity = int(active_value)
+            stock_status = StockStatus.IN_STOCK if stock_quantity else StockStatus.OUT_OF_STOCK
         image = card.select_one('.product-img img')
         image_url = None
         if image is not None:
