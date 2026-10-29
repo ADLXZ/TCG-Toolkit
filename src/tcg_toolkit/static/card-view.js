@@ -3,6 +3,7 @@
 import {t, getLanguage} from './i18n.js';
 import {largeImageUrl} from './logic.js';
 import {rarityTier, rarityDescription} from './rarities.js';
+import {bindCopy, relabel} from './copy-number.js';
 const $ = id => document.getElementById(id);
 const el = (tag, className = '', text = '') => {const node = document.createElement(tag); node.className = className; node.textContent = text; return node;};
 // Some cards (e.g. WS Climax) are printed landscape. Flag them once loaded so CSS
@@ -84,7 +85,7 @@ export function openPreview(item, thumbnail) {
   const image = $('preview-image'), current = ++previewRequest;
   // Show the thumbnail at once, then swap in the full image when it has loaded.
   image.src = thumbnail; image.alt = item.name;
-  $('preview-name').textContent = item.name; $('preview-number').textContent = item.card_number;
+  $('preview-name').textContent = item.name; $('preview-number').textContent = item.card_number; relabel($('preview-number'), item.card_number);
   $('image-dialog').classList.add('loading');
   const full = new Image();
   full.onload = () => { if (current === previewRequest) { image.src = full.src; $('image-dialog').classList.remove('loading'); } };
@@ -93,6 +94,7 @@ export function openPreview(item, thumbnail) {
   $('image-dialog').showModal();
 }
 $('preview-close').addEventListener('click', () => $('image-dialog').close());
+bindCopy($('preview-number'), () => $('preview-number').textContent);
 // A click on the backdrop lands on the dialog element itself.
 $('image-dialog').addEventListener('click', event => { if (event.target === $('image-dialog')) $('image-dialog').close(); });
 $('image-dialog').addEventListener('close', () => { previewRequest++; $('preview-image').removeAttribute('src'); });

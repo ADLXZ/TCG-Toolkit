@@ -31,7 +31,9 @@ nav a:hover { background: var(--color-hover); }
 nav a[aria-current] { background: var(--color-primary); color: var(--color-on-primary); }
 
 /* Layout */
-main { margin-left: 208px; max-width: 1560px; padding: 40px 48px 48px; }
+/* Capped for readability; once wider, centre it in the space beside the sidebar so zooming
+   out (or a wide screen) splits the spare room instead of leaving it all on the right. */
+main { margin-left: max(208px, calc((100% + 208px - 1560px) / 2)); max-width: 1560px; padding: 40px 48px 48px; }
 header { margin-bottom: 24px; }
 h1 { font-size: 28px; letter-spacing: -.8px; margin: 0; }
 h2 { font-size: 17px; margin: 0; }
@@ -185,7 +187,7 @@ td a:hover, .card-name:hover { text-decoration: underline; }
 .badge.out_of_stock { color: var(--color-text-subtle); }
 
 /* Grid view */
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 12px; margin-top: 14px; }
 .card {
   display: flex; flex-direction: column; gap: 10px; padding: 16px;
   background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
@@ -193,7 +195,8 @@ td a:hover, .card-name:hover { text-decoration: underline; }
 }
 .card:hover { border-color: var(--color-border-hover); box-shadow: var(--shadow-md); }
 .card-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; }
-.card-tags { display: flex; align-items: center; gap: 6px; }
+/* Wraps so game, rarity and cart tags never push past a narrow card. */
+.card-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; }
 .card-name { font-weight: 600; line-height: 1.45; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .card-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--color-divider); }
 .card .price { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -381,7 +384,7 @@ button.password-toggle:hover { border: 0; background: var(--color-hover); color:
 #auth-confirm-password[aria-invalid=true] { border-color: var(--color-text-secondary); }
 
 /* User centre */
-#account-panel { max-width: 960px; }
+/* Same width as the other pages (see main). */
 .profile-card { display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 16px; }
 .profile-meta { flex: 1; min-width: 0; }
 .profile-meta h2 { font-size: 20px; overflow-wrap: anywhere; }
@@ -697,7 +700,6 @@ button.cart-step:disabled:hover { background: transparent; }
   .cart-settings-fields { grid-template-columns: 1fr; }
   .cart-settings-actions { flex-wrap: wrap; }
   #cart-settings-status { flex-basis: 100%; }
-  .section-heading .cart-summary { white-space: normal; }
 }
 /* One rhythm inside each step: text, command, screenshot, notes. */
 .cart-help li > * + * { margin-top: 10px; }
@@ -761,3 +763,33 @@ button.cart-settings-toggle { width: 32px; height: 32px; border-radius: 50%; fon
 button.cart-settings-toggle:hover { background: var(--color-hover); }
 /* No icon for neutral states: drop the empty element so the gap does not offset the text. */
 #cart-settings-state-icon:not([class~="bi"]) { display: none; }
+
+/* Narrow screens and high zoom: headings wrap instead of squeezing their actions. */
+@media (max-width: 700px) {
+  .section-heading { flex-wrap: wrap; row-gap: 10px; }
+  .section-heading .heading-actions { flex-wrap: wrap; margin-left: auto; }
+}
+/* Four nav links fit as equal columns: icon above a short label. */
+@media (max-width: 480px) {
+  #app-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  #app-nav a { flex-direction: column; justify-content: center; gap: 3px; padding: 7px 4px; font-size: 12px; text-align: center; white-space: normal; }
+  /* Starts just right of the icon, so wider counts (999+) grow away from it. */
+  #app-nav a .nav-count { position: absolute; top: 3px; left: calc(50% + 3px); margin: 0; min-width: 16px; padding: 0 4px; font-size: 10px; line-height: 15px; letter-spacing: -.2px; }
+  #app-nav a { position: relative; }
+}
+/* Three cart tiles: wrap onto a second row rather than clipping the subtotal. */
+.cart-overview .stat-tiles { flex-wrap: wrap; }
+.cart-overview .stat-tile { flex: 1 1 120px; min-width: 0; }
+.cart-overview .stat-value { overflow-wrap: anywhere; }
+
+/* Card numbers: look like text, copy on click, confirm with a small bubble. */
+button.copy-number { position: relative; height: auto; padding: 1px 4px; margin: -1px -4px; gap: 0; border: 0; border-radius: var(--radius-sm); background: none; color: var(--color-text-muted); font-weight: 400; cursor: copy; transition: background .15s, color .15s; }
+button.copy-number:hover { background: var(--color-hover); color: var(--color-text); }
+button.copy-number:focus-visible { outline-offset: 1px; }
+button.copy-number[data-copied]::after {
+  content: attr(data-copied); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  padding: 3px 8px; font: 500 11px/1.4 var(--font-sans); white-space: nowrap; color: var(--color-on-primary);
+  background: var(--color-success); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); pointer-events: none; z-index: 5;
+}
+button.copy-number.copy-failed::after { background: var(--color-primary); }
+#preview-number.copy-number { color: inherit; }

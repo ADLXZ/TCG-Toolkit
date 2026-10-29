@@ -16,7 +16,7 @@
 <body class="signed-out">
 <aside>
 <a class="brand" href="./"><i class="bi bi-stack"></i><span data-i18n="tcg"></span><span data-i18n="toolkit"></span></a>
-<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span></a><a href="#cards"><i class="bi bi-collection"></i><span data-i18n="cards_title"></span></a><a href="#cart"><i class="bi bi-cart3"></i><span data-i18n="cart_title"></span><span id="cart-nav-count" class="nav-count" hidden></span></a></nav>
+<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span><span id="favorites-nav-count" class="nav-count" hidden></span></a><a href="#cards"><i class="bi bi-collection"></i><span data-i18n="cards_title"></span><span id="cards-nav-count" class="nav-count" hidden></span></a><a href="#cart"><i class="bi bi-cart3"></i><span data-i18n="cart_title"></span><span id="cart-nav-count" class="nav-count" hidden></span></a></nav>
 <div id="app-settings" class="sidebar-settings" hidden>
 <label class="setting" data-i18n-title="language"><i class="bi bi-globe2"></i><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label>
 <label class="setting" data-i18n-title="display_currency"><i class="bi bi-currency-exchange"></i><select id="currency" data-i18n-aria-label="display_currency"><option value="JPY" data-i18n="currency_jpy"></option><option value="CNY" data-i18n="currency_cny"></option><option value="CAD" data-i18n="currency_cad"></option></select></label>
@@ -322,7 +322,7 @@
 <dialog id="image-dialog" class="image-dialog" aria-labelledby="preview-name">
 <button type="button" id="preview-close" class="icon-button preview-close" data-i18n-aria-label="close" data-i18n-title="close"><i class="bi bi-x-lg"></i></button>
 <figure><div class="preview-frame"><img id="preview-image" alt=""/><i class="bi bi-arrow-repeat spin preview-spinner" aria-hidden="true"></i></div>
-<figcaption><span id="preview-name"></span><span id="preview-number" class="mono"></span></figcaption></figure>
+<figcaption><span id="preview-name"></span><button type="button" id="preview-number" class="mono copy-number"></button></figcaption></figure>
 </dialog>
 <dialog id="detail-dialog" aria-labelledby="detail-title" aria-describedby="detail-description">
 <h2 id="detail-title" data-i18n="detail_title"></h2>
@@ -333,5 +333,6 @@
 <a id="detail-confirm" target="_blank" rel="noopener noreferrer" data-i18n="detail_confirm"></a>
 </div>
 </dialog>
+<p id="copy-status" class="sr-only" role="status" aria-live="polite"></p>
 </body>
 </html>

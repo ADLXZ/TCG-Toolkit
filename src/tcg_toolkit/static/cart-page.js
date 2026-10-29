@@ -3,6 +3,7 @@
 import {t, getLanguage} from './i18n.js';
 import {cardImage, rarityBadge} from './card-view.js';
 import {productKey} from './cart.js';
+import {numberButton} from './copy-number.js';
 const $ = id => document.getElementById(id);
 const el = (tag, className = '', text = '') => {const node = document.createElement(tag); node.className = className; node.textContent = text; return node;};
 const icon = name => el('i', `bi ${name}`);
@@ -55,7 +56,7 @@ export function createCartPage({cart, details, amountDisplay, gameLabel, cardLin
   }
   function cardNumber(row) {
     const known = info(row);
-    if (known.status === 'done') return el('span', 'mono', known.card_number);
+    if (known.status === 'done') return numberButton(known.card_number);
     const pending = el('span', 'mono muted');
     if (known.status === 'loading') { pending.append(icon('bi-arrow-repeat spin')); pending.title = t('cart_details_loading'); }
     else { pending.textContent = '—'; pending.title = t('cart_details_failed'); }

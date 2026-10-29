@@ -3,6 +3,8 @@ import {createFavorites, cardKey} from './favorites.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {loadResults} from './logic.js';
 import {rarityBadge, cardImage} from './card-view.js';
+import {numberButton} from './copy-number.js';
+import {setNavCount} from './nav-count.js';
 import {createFilterPanel} from './filters.js';
 import {readHistory, appendHistory, saveHistory} from './history.js';
 import {fetchRate, formatPrice} from './currency.js';
@@ -72,8 +74,7 @@ function renderCartSummary() {
   $('cart-refresh').hidden = !state.configured;
   $('cart-refresh').disabled = state.loading;
   $('cart-refresh').querySelector('.bi').classList.toggle('spin', state.loading);
-  $('cart-nav-count').hidden = !state.configured || !state.totalQuantity;
-  $('cart-nav-count').textContent = state.totalQuantity ? state.totalQuantity.toLocaleString(getLanguage()) : '';
+  setNavCount($('cart-nav-count'), state.configured ? state.totalQuantity : 0);
   cartSettings.render();
 }
 $('cart-refresh').addEventListener('click', () => cart.refresh());
@@ -225,6 +226,7 @@ function favoriteCell(item) {
 function renderFavorites() {
   const state = favorites.state;
   const matches = favoriteFilters.apply(state.records.map(row => row.item));
+  setNavCount($('favorites-nav-count'), state.ready ? state.records.length : 0);
   favoriteFilters.element.hidden = !state.records.length;
   $('favorites-rows').replaceChildren(...(view === 'list' ? matches.map(item => tableRow(item)) : []));
   $('favorites-grid').replaceChildren(...(view === 'grid' ? matches.map(item => gridCard(item)) : []));
@@ -253,7 +255,7 @@ function tableRow(item, withCart = false) {
   const row = document.createElement('tr');
   const cell = (child, className = '') => {const td = el('td', className); td.append(child); row.append(td);};
   const product = el('div', 'product-summary'); product.append(cardImage(item), cardLink(item));
-  cell(el('span', 'game-tag', gameLabel(item.game))); cell(rarityBadge(item)); cell(item.card_number, 'mono'); cell(product);
+  cell(el('span', 'game-tag', gameLabel(item.game))); cell(rarityBadge(item)); cell(numberButton(item.card_number)); cell(product);
   const owned = ownedQuantity(item);
   cell(priceDisplay(item), 'numeric'); cell(stockBadge(item));
   cell(owned ? owned.toLocaleString(getLanguage()) : '—', `numeric owned-cell${owned ? '' : ' muted'}`);
@@ -264,7 +266,7 @@ function tableRow(item, withCart = false) {
 function gridCard(item, withCart = false) {
   const card = el('article', `card ${item.stock_status}`);
   const tags = el('div', 'card-tags'); tags.append(el('span', 'game-tag', gameLabel(item.game)), rarityBadge(item));
-  const top = el('div', 'card-top'); top.append(tags, el('span', 'mono', item.card_number));
+  const top = el('div', 'card-top'); top.append(tags, numberButton(item.card_number));
   const bottom = el('div', 'card-bottom'); bottom.append(priceDisplay(item), stockBadge(item));
   const image = cardImage(item); image.append(favoriteToggle(item));
   const owned = ownedQuantity(item);
