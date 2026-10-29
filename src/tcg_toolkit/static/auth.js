@@ -1,6 +1,7 @@
 import {apiRequest, getToken, setToken, TOKEN_KEY} from './api.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {createAuthenticatedRequest} from './auth-client.js';
+import {yuyuteiClient} from './yuyutei-client.js';
 const $ = id => document.getElementById(id);
 let user = null, searchApp = null, registering = false, errorKey = '';
 const api = createAuthenticatedRequest(() => signedOut('auth_expired'), apiRequest);
@@ -53,6 +54,7 @@ function setAvatar(name) {
   for (const id of ['user-avatar', 'account-avatar']) $(id).textContent = name.slice(0, 1).toUpperCase();
 }
 function signedOut(message = '', clearToken = true) {
+  yuyuteiClient.deactivate({clear: clearToken});
   if (clearToken) setToken(null);
   api.invalidate(); searchApp?.clearUser(); user = null;
   registering = false; $('account-status').textContent = '';
@@ -66,6 +68,7 @@ async function signedIn(value) {
   searchApp ??= await import('./app.js');
   if (getToken() !== expectedToken) return;
   user = value; searchApp.activateUser(user.id, api.fetch);
+  yuyuteiClient.activateUser(user.id, api.fetch);
   $('account-status').textContent = '';
   $('current-username').textContent = user.username;
   $('account-username').textContent = user.username; setAvatar(user.username);
@@ -100,6 +103,7 @@ $('auth-switch').addEventListener('click', () => {
   registering = !registering; errorKey = ''; $('auth-password').value = ''; $('auth-confirm-password').value = ''; refresh();
 });
 $('logout').addEventListener('click', async () => {
+  yuyuteiClient.clearCredentials();
   $('logout').disabled = true;
   api.invalidate(); searchApp?.clearUser();
   try {
@@ -120,7 +124,7 @@ async function restoreSession() {
   const token = getToken();
   const destination = location.hash;
   signedOut('', false);
-  if (!token) { $('auth-submit').disabled = false; return; }
+  if (!token) { yuyuteiClient.deactivate(); $('auth-submit').disabled = false; return; }
   $('auth-submit').disabled = true;
   try {
     const response = await apiRequest('/api/auth/me', {cache: 'no-store'});
@@ -133,6 +137,9 @@ async function restoreSession() {
   finally {if (generation === restoreGeneration) $('auth-submit').disabled = false;}
 }
 window.addEventListener('storage', event => {
-  if (event.key === TOKEN_KEY || event.key === null) restoreSession();
+  if (event.key === TOKEN_KEY || event.key === null) {
+    yuyuteiClient.deactivate();
+    restoreSession();
+  }
 });
 await restoreSession();

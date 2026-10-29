@@ -21,6 +21,7 @@ from .auth.routes import router as auth_router, current_user, initialize_auth
 from .favorites import router as favorites_router
 from .cards import router as cards_router
 from .official import router as official_router
+from .yuyutei_cart import router as yuyutei_router
 
 
 @asynccontextmanager
@@ -37,7 +38,8 @@ class BrowserCORS:
         origins = getattr(scope["app"].state, "auth_origins", set())
         await CORSMiddleware(self.app, allow_origins=list(origins),
                              allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                             allow_headers=["Authorization", "Content-Type"])(scope, receive, send)
+                             allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
+                             expose_headers=["Idempotency-Replayed"])(scope, receive, send)
 
 
 app = FastAPI(title="TCG Toolkit", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
@@ -46,6 +48,7 @@ app.include_router(auth_router)
 app.include_router(favorites_router)
 app.include_router(cards_router)
 app.include_router(official_router)
+app.include_router(yuyutei_router)
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher, Game.WS: WSSearcher, Game.PM: PMSearcher}
 
 
@@ -53,7 +56,7 @@ SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: Chaos
 async def browser_cache_policy(request, call_next):
     response = await call_next(request)
     if any(request.url.path == path or request.url.path.startswith(path + '/')
-           for path in ('/api/favorites', '/api/cards')):
+           for path in ('/api/favorites', '/api/cards', '/api/yuyutei')):
         response.headers['Cache-Control'] = 'no-store'
     elif not request.url.path.startswith('/api/'):
         # Static filenames are stable across releases; validate cached modules.

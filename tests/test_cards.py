@@ -91,7 +91,7 @@ def test_v2_migration_preserves_data(tmp_path):
             PRAGMA user_version = 2;''')
     for _ in range(2):
         with UserStore(path).connect() as db:
-            assert db.execute('PRAGMA user_version').fetchone()[0] == 4
+            assert db.execute('PRAGMA user_version').fetchone()[0] == 7
             assert db.execute('SELECT username FROM users').fetchone()[0] == 'alice'
             assert db.execute('SELECT token_hash FROM sessions').fetchone()[0] == 'token'
             assert db.execute('SELECT id FROM favorites').fetchone()[0] == 'f'
@@ -120,4 +120,4 @@ def test_v3_image_migration_preserves_cards(tmp_path):
     with UserStore(path).connect() as db:
         row = db.execute('SELECT * FROM owned_cards').fetchone()
         assert row['id'] == 'existing' and row['quantity'] == 7 and row['image_url'] == ''
-        assert db.execute('PRAGMA user_version').fetchone()[0] == 4
+        assert db.execute('PRAGMA user_version').fetchone()[0] == 7
