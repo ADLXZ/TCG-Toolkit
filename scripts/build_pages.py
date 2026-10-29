@@ -11,8 +11,8 @@ from urllib.parse import urlsplit
 # modules imported later (auth.js loads app.js after sign-in). Stamping every local
 # reference with a content hash gives each release fresh URLs. All references must
 # carry the same stamp, or the browser would load a module twice and split its state.
-HTML_REF = re.compile(r'((?:src|href)=")\./([\w.-]+\.(?:js|css|svg|png))(")')
-ASSETS = {".html", ".js", ".css", ".svg", ".png"}
+HTML_REF = re.compile(r'((?:src|href)=")\./([\w.-]+\.(?:js|css|svg|png|webp))(")')
+ASSETS = {".html", ".js", ".css", ".svg", ".png", ".webp"}
 JS_REF = re.compile(r"""((?:\bfrom\s+|\bimport\s*\(\s*)(['"]))\./([\w.-]+\.js)(\2)""")
 
 

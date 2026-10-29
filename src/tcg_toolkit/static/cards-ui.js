@@ -71,6 +71,8 @@ function visibleCards(records) {
     .filter(row => !filters.hiddenGames.has(row.game.toLowerCase()));
   return sortCards(rows, filters.sort);
 }
+// Game logos shown after the game name in filter chips (keys match gameKey()).
+const GAME_LOGOS = {ws: './game-ws.webp', wsr: './game-wsr.webp', pm: './game-pm.webp', lycee: './game-lycee.webp', chaostcg: './game-chaos.webp'};
 function gameChips() {
   const games = new Map(inventory.state.records.map(row => [row.game.toLowerCase(), row.game]));
   $('cards-game-chips').replaceChildren(...[...games].sort((a, b) => collator.compare(a[1], b[1])).map(([key, label]) => {
@@ -78,6 +80,8 @@ function gameChips() {
     input.type = 'checkbox'; input.checked = !filters.hiddenGames.has(key);
     input.addEventListener('change', () => { if (input.checked) filters.hiddenGames.delete(key); else filters.hiddenGames.add(key); render(); });
     chip.append(input, icon('bi-check-lg'), node('span', label));
+    const logo = GAME_LOGOS[key];
+    if (logo) { const img = document.createElement('img'); img.className = 'chip-logo'; img.src = logo; img.alt = ''; img.setAttribute('aria-hidden', 'true'); chip.append(img); }
     return chip;
   }));
   $('cards-game-chips').hidden = games.size < 2;

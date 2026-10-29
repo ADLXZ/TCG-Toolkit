@@ -653,3 +653,6 @@ td.owned-cell.muted { font-weight: 400; color: var(--color-text-subtle); }
   color: var(--color-on-primary); background: color-mix(in srgb, var(--gray-900) 82%, transparent);
   border-radius: var(--radius-pill); pointer-events: none;
 }
+
+/* Game logos in search and filter chips; a light backing keeps silver logos visible on checked (dark) chips. */
+.chip-logo { height: 16px; width: auto; margin-left: 2px; padding: 1px 3px; background: var(--color-surface); border-radius: var(--radius-sm); }

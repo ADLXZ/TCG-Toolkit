@@ -1,6 +1,7 @@
 """Local browser API; the existing searchers own upstream parsing."""
 from contextlib import asynccontextmanager
 from pathlib import Path
+import mimetypes
 import os
 from starlette.middleware.cors import CORSMiddleware
 from typing import Annotated
@@ -12,6 +13,9 @@ from fastapi.staticfiles import StaticFiles
 from . import (ChaosTCGSearcher, Game, LyceeSearcher, SearchParseError,
                SearchRequestError, WSRSearcher, WSSearcher, PMSearcher)
 from .external import CurrencyClient, CurrencyConfigError, CurrencyRequestError, TargetCurrency
+
+# Slim images may lack a system MIME table entry for the game logos.
+mimetypes.add_type('image/webp', '.webp')
 
 from .auth.routes import router as auth_router, current_user, initialize_auth
 from .favorites import router as favorites_router
