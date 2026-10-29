@@ -29,6 +29,8 @@ nav a {
 }
 nav a:hover { background: var(--color-hover); }
 nav a[aria-current] { background: var(--color-primary); color: var(--color-on-primary); }
+/* Breathing room between sidebar items; narrow layouts set their own spacing below. */
+#app-nav { display: flex; flex-direction: column; gap: 6px; }
 
 /* Layout */
 /* Capped for readability; once wider, centre it in the space beside the sidebar so zooming
@@ -170,6 +172,9 @@ td a:hover, .card-name:hover { text-decoration: underline; }
 .numeric { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
 .game-tag { display: inline-block; font-size: 11px; font-weight: 600; white-space: nowrap; color: var(--color-text-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 1px 6px; }
 .rarity-tag { display: inline-block; font-size: 11px; font-weight: 600; white-space: nowrap; color: var(--rarity-normal-text); background: var(--rarity-normal); border-radius: var(--radius-sm); padding: 2px 7px; letter-spacing: .3px; }
+/* Middle, not baseline: rare/special tags clip their sheen (overflow: hidden), which moves an
+   inline-block's baseline to its bottom edge and would lift them above the game tag. */
+.game-tag, .rarity-tag, .cart-tag { vertical-align: middle; }
 .rarity-tag.tier-rare { color: var(--rarity-rare-text); background: var(--rarity-rare); }
 .rarity-tag.tier-special { color: var(--rarity-special-text); background: var(--rarity-special); }
 /* Rare and special: one white sheen sweeps across, then rests. */
@@ -446,10 +451,10 @@ button.fav-toggle:disabled:hover, button.fav-refresh:disabled:hover { background
 .favorite-controls .fav-meta { flex-direction: column; align-items: flex-end; gap: 2px; white-space: nowrap; }
 .card .fav-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; margin-top: -2px; }
 .card .fav-meta > span { grid-column: 1; }
-.card .fav-meta .fav-refresh { grid-column: 2; grid-row: 1 / span 2; width: 28px; height: 28px; font-size: 14px; }
+.card .fav-meta .fav-refresh { grid-column: 2; grid-row: 1; width: 28px; height: 28px; font-size: 14px; }
+/* Always level with the update time; a status note, if any, goes on the line below. */
 .fav-time, .fav-note { display: inline-flex; align-items: center; gap: 5px; }
 .fav-note { color: var(--color-text); font-weight: 500; }
-.fav-note.ok { color: var(--color-text-muted); font-weight: 400; }
 #favorites-retry { margin-bottom: 14px; }
 /* Shared page skeleton: header, optional top panel, results heading, filters, list. */
 header + .results > .section-heading { margin-top: 0; }
@@ -777,10 +782,15 @@ button.cart-settings-toggle:hover { background: var(--color-hover); }
   #app-nav a .nav-count { position: absolute; top: 3px; left: calc(50% + 3px); margin: 0; min-width: 16px; padding: 0 4px; font-size: 10px; line-height: 15px; letter-spacing: -.2px; }
   #app-nav a { position: relative; }
 }
-/* Three cart tiles: wrap onto a second row rather than clipping the subtotal. */
-.cart-overview .stat-tiles { flex-wrap: wrap; }
-.cart-overview .stat-tile { flex: 1 1 120px; min-width: 0; }
-.cart-overview .stat-value { overflow-wrap: anywhere; }
+/* Cart tiles stay on one row; the note beside them moves below instead of squeezing them. */
+.cart-overview .stat-tiles { flex: none; flex-wrap: nowrap; }
+/* Sized by content, never narrower than it: a long subtotal widens its tile instead of spilling out. */
+.cart-overview .stat-tile { flex: 1 1 auto; width: 120px; min-width: max-content; }
+.cart-overview .stat-value { white-space: nowrap; }
+/* Portrait (phones, tall windows): wrap, but only once the three tiles genuinely do not fit. */
+@media (orientation: portrait) {
+  .cart-overview .stat-tiles { flex: 1 1 100%; flex-wrap: wrap; }
+}
 
 /* Card numbers: look like text, copy on click, confirm with a small bubble. */
 button.copy-number { position: relative; height: auto; padding: 1px 4px; margin: -1px -4px; gap: 0; border: 0; border-radius: var(--radius-sm); background: none; color: var(--color-text-muted); font-weight: 400; cursor: copy; transition: background .15s, color .15s; }
@@ -793,3 +803,43 @@ button.copy-number[data-copied]::after {
 }
 button.copy-number.copy-failed::after { background: var(--color-primary); }
 #preview-number.copy-number { color: inherit; }
+
+/* Typed cart quantity: reads like the old number, becomes a field on hover/focus. */
+input.cart-qty { width: 4ch; min-width: 26px; height: 24px; margin: 0; padding: 0 2px; box-sizing: content-box; text-align: center; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-text); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); }
+input.cart-qty:hover:not(:disabled) { border-color: var(--color-border-strong); }
+input.cart-qty:focus { border-color: var(--color-focus); box-shadow: var(--focus-ring); background: var(--color-surface); }
+input.cart-qty:disabled { opacity: 1; color: var(--color-text-subtle); cursor: default; }
+input.cart-qty:disabled:hover { border-color: transparent; }
+
+.bubble-anchor { position: relative; }
+.feedback-bubble { position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 20; width: max-content; max-width: min(260px, 80vw); padding: 10px 14px; border-radius: 8px; color: #713f12; background: #fef3c7; border: 1px solid #f59e0b; box-shadow: 0 4px 16px #0002; white-space: normal; }
+.feedback-bubble::after { content: ''; position: absolute; right: 18px; bottom: -5px; width: 8px; height: 8px; background: #fef3c7; border-right: 1px solid #f59e0b; border-bottom: 1px solid #f59e0b; transform: rotate(45deg); }
+
+.feedback-bubble { animation: feedback-bubble-fade var(--bubble-fade, 300ms) ease-out forwards; animation-delay: 2s; pointer-events: none; }
+@keyframes feedback-bubble-fade { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) {
+  .feedback-bubble { animation-duration: 0ms; }
+}
+
+.feedback-bubble--success { color: #166534; background: #dcfce7; border-color: #86efac; }
+.feedback-bubble--info { color: #1e40af; background: #dbeafe; border-color: #93c5fd; }
+.feedback-bubble--error { color: #991b1b; background: #fee2e2; border-color: #fca5a5; }
+.feedback-bubble::after { background: inherit; border-color: inherit; }
+
+.cart-stock-control { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+/* Round icon button, same footprint as the favorites refresh. */
+button.cart-stock-fetch { width: 28px; height: 28px; flex: none; border-radius: 50%; font-size: 14px; }
+button.cart-stock-fetch:hover { background: var(--color-hover); color: var(--color-text); }
+button.cart-stock-fetch:disabled:hover { background: transparent; }
+.badge.stock-short { color: var(--color-text); font-weight: 600; }
+.badge.stock-short .bi { color: var(--rarity-rare); }
+.badge.stock-failed { color: var(--color-text-muted); }
+/* Badge left, button right: buttons line up in one column (table) and at the card edge (grid). */
+.cart-stock-control { justify-content: space-between; }
+td .cart-stock-control { gap: 8px; min-width: 128px; }
+.card .cart-stock-control { margin-top: -4px; }
+
+/* Cart overview note is the link to YuYu-Tei's own cart. */
+a.cart-checkout { display: inline; color: inherit; text-decoration: none; border-radius: var(--radius-sm); }
+a.cart-checkout .bi { margin-left: 5px; font-size: 11px; }
+a.cart-checkout:hover { color: var(--color-text); text-decoration: underline; text-underline-offset: 3px; }

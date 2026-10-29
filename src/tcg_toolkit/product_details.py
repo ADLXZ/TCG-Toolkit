@@ -40,10 +40,26 @@ def parse_product(html):
     return {'card_number': card_number, 'rarity': rarity}
 
 
-def fetch_product(gid, ver, cid, client_factory=None):
+def parse_product_stock(html, kizu=0):
+    soup = BeautifulSoup(html, 'html.parser')
+    values = set()
+    for node in soup.select('input.cart_active'):
+        container = node.find_parent(class_='counter')
+        condition = container.select_one('input.cart_kizu') if container else None
+        if condition is None or condition.get('value') != str(kizu):
+            continue
+        value = node.get('value', '')
+        if re.fullmatch(r'[0-9]+', value):
+            values.add(int(value))
+    quantity = next(iter(values)) if len(values) == 1 else None
+    return {'stock_quantity': quantity,
+            'stock_status': 'unknown' if quantity is None else 'in_stock' if quantity else 'out_of_stock'}
+
+
+def fetch_product(gid, ver, cid, client_factory=None, *, stock=False, kizu=0):
     key = (gid, ver, cid)
     with _cache_lock:
-        if key in _cache:
+        if not stock and key in _cache:
             return _cache[key]
     url = f'https://yuyu-tei.jp/sell/{GAME_PATHS[gid]}/card/{ver}/{cid}'
     client = (client_factory or SearchProxyClient)()
@@ -64,13 +80,13 @@ def fetch_product(gid, ver, cid, client_factory=None):
         if len(_cache) >= CACHE_LIMIT:
             _cache.pop(next(iter(_cache)))
         _cache[key] = details
-    return details
+    return {**details, **parse_product_stock(response.text, kizu)} if stock else details
 
 
 @router.get('/product')
 def product(gid: Annotated[int, Query()], ver: Annotated[str, Query(min_length=1, max_length=64,
             pattern=r'^[A-Za-z0-9_-][A-Za-z0-9_.-]*$')], cid: Annotated[str, Query(min_length=1, max_length=32,
-            pattern=r'^[0-9]+$')]):
+            pattern=r'^[0-9]+$')], stock: bool = False, kizu: Annotated[int, Query(ge=0, le=1)] = 0):
     if gid not in GAME_PATHS:
         raise HTTPException(422, detail='invalid_product')
-    return {'gid': gid, 'ver': ver, 'cid': cid, **fetch_product(gid, ver, cid)}
+    return {'gid': gid, 'ver': ver, 'cid': cid, **fetch_product(gid, ver, cid, stock=stock, kizu=kizu)}

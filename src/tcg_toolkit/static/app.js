@@ -13,6 +13,7 @@ import {createCart, cartTarget} from './cart.js';
 import {bindCartSettings} from './cart-settings.js';
 import {cartStepper, createCartPage} from './cart-page.js';
 import {createProductDetails} from './product-details.js';
+import {createCartStock} from './cart-stock.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
 const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg", "ws": "ws", "pm": "pm"};
@@ -57,6 +58,7 @@ let userId = null, requestAPI = fetch;
 let history = [];
 const favorites = createFavorites(() => {render(); renderFavorites();});
 let cartPage = null;
+const cartStock = createCartStock(() => cartPage?.render());
 const productDetails = createProductDetails(() => cartPage?.render());
 const cart = createCart(yuyuteiClient, () => {render(); renderCartSummary(); cartPage?.render();});
 const cartSettings = bindCartSettings(yuyuteiClient, cart);
@@ -78,7 +80,7 @@ function renderCartSummary() {
   cartSettings.render();
 }
 $('cart-refresh').addEventListener('click', () => cart.refresh());
-cartPage = createCartPage({cart, details: productDetails, amountDisplay, gameLabel, cardLink, currentView: () => view});
+cartPage = createCartPage({cart, stock: cartStock, details: productDetails, amountDisplay, gameLabel, cardLink, currentView: () => view});
 document.addEventListener('viewchange', () => cartPage.render());
 // +1 / −1 against the real YuYu-Tei cart; the count shown is what the shop reported.
 function cartControls(item) {
@@ -86,7 +88,10 @@ function cartControls(item) {
   if (!target || !cart.state.configured) { const box = el('div', 'cart-controls'); box.append(el('span', 'muted', '—')); return box; }
   const quantity = cart.quantity(target);
   const soldOut = item.stock_status === 'out_of_stock' || (item.stock_quantity != null && quantity >= item.stock_quantity);
+  // Stock is the cart's upper bound here; typed numbers are clamped to it.
+  const stock = item.stock_status === 'out_of_stock' ? 0 : item.stock_quantity ?? null, limits = cart.range(target, {stock});
   return cartStepper(cart, target, {quantity, canIncrease: !soldOut, increaseKey: soldOut ? 'cart_no_stock' : 'cart_increase',
+    canEdit: limits.min < limits.max, onSet: value => cart.setTo(target, value, {stock, item}),
     onDecrease: () => cart.decrease(target), onIncrease: () => cart.increase(target, item)});
 }
 function closeHistory() { $('search-history').hidden = true; $('keyword').setAttribute('aria-expanded', 'false'); }
@@ -198,7 +203,10 @@ function favoriteRefresh(item) {
 }
 // Refresh time and status note; the time only shows on the favorites page.
 function favoriteMeta(item) {
-  const saved = favorites.find(item), message = favorites.state.messages.get(cardKey(item));
+  const saved = favorites.find(item);
+  // A successful refresh shows through the new update time; only problems get a note.
+  const reported = favorites.state.messages.get(cardKey(item));
+  const message = reported === 'favorite_updated' ? '' : reported;
   const onPage = saved && location.hash === '#favorites';
   if (!onPage && !message) return null;
   const box = el('div', 'fav-meta');
@@ -209,8 +217,8 @@ function favoriteMeta(item) {
     box.append(stamp);
   }
   if (message) {
-    const note = el('span', `fav-note${message === 'favorite_updated' ? ' ok' : ''}`); note.setAttribute('role', 'status');
-    note.append(icon(message === 'favorite_updated' ? 'bi-check2' : 'bi-exclamation-circle'), t(message));
+    const note = el('span', 'fav-note'); note.setAttribute('role', 'status');
+    note.append(icon('bi-exclamation-circle'), t(message));
     box.append(note);
   }
   return box;
@@ -354,7 +362,7 @@ refreshLanguage(); setView(view);
 
 export function clearUser() {
   ++batch; ++currencyRequest; controller?.abort(); controller = null;
-  favorites.clear(); clearCards(); cartSettings.reset(); cartPage.close(); productDetails.clear(); cart.clear();
+  favorites.clear(); clearCards(); cartSettings.reset(); cartPage.close(); productDetails.clear(); cartStock.clear(); cart.clear();
   userId = null; items = []; history = []; started = false; errors = [];
   displayCurrency = 'JPY'; exchangeRate = 1; currencyStatus = null;
   $('currency').value = 'JPY'; $('keyword').value = ''; $('stop').hidden = true;
@@ -367,6 +375,6 @@ export function clearUser() {
 export function activateUser(id, request) {
   clearUser(); userId = id; requestAPI = request;
   history = readHistory(localStorage, userId); $('search').inert = false;
-  favorites.activate(requestAPI); activateCards(requestAPI); productDetails.activate(requestAPI); cart.refresh();
+  favorites.activate(requestAPI); activateCards(requestAPI); productDetails.activate(requestAPI); cartStock.activate(requestAPI); cart.refresh();
   refreshLanguage();
 }

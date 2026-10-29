@@ -2,8 +2,9 @@
 // what YuYu-Tei last reported; app.js owns the view toggle, prices and links.
 import {t, getLanguage} from './i18n.js';
 import {cardImage, rarityBadge} from './card-view.js';
-import {productKey} from './cart.js';
+import {productKey, parseQuantity} from './cart.js';
 import {numberButton} from './copy-number.js';
+import {showBubble} from './bubble.js';
 const $ = id => document.getElementById(id);
 const el = (tag, className = '', text = '') => {const node = document.createElement(tag); node.className = className; node.textContent = text; return node;};
 const icon = name => el('i', `bi ${name}`);
@@ -11,9 +12,13 @@ const number = value => value.toLocaleString(getLanguage());
 // Cart rows name games by their shop path; the rest of the UI uses search game keys.
 const GAME_KEYS = {lo: 'lycee'}, KNOWN_GAMES = ['wsr', 'lycee', 'chaos', 'ws', 'pm'];
 const targetOf = row => ({gid: row.gid, ver: row.ver, cid: row.cid, kizu: row.kizu});
+const SHOP_CART_URL = 'https://yuyu-tei.jp/cart/sell';
+const STOCK_ICONS = {in_stock: 'bi-check-circle-fill', out_of_stock: 'bi-x-circle', unknown: 'bi-question-circle'};
 
-export function cartStepper(cart, target, {quantity, onIncrease, onDecrease, increaseKey = 'cart_increase',
-  canIncrease = true, canDecrease = true}) {
+// Unsent typing survives re-renders (any cart change redraws the list).
+const drafts = new Map();
+export function cartStepper(cart, target, {quantity, onIncrease, onDecrease, onSet, draftKey = productKey(target),
+  increaseKey = 'cart_increase', canIncrease = true, canDecrease = true, canEdit = true}) {
   const box = el('div', 'cart-controls'), busy = cart.isBusy(target);
   const pending = busy || (cart.state.loading && !cart.state.rows.length);
   const stepper = el('div', `cart-stepper${quantity ? ' active' : ''}`); stepper.setAttribute('role', 'group');
@@ -23,17 +28,55 @@ export function cartStepper(cart, target, {quantity, onIncrease, onDecrease, inc
     node.setAttribute('aria-label', t(key)); node.title = t(key); node.disabled = disabled;
     node.addEventListener('click', action); return node;
   };
-  const count = el('span', 'cart-qty');
-  if (busy) count.append(icon('bi-arrow-repeat spin')); else count.textContent = number(quantity);
+  let count;
+  if (busy) { count = el('span', 'cart-qty'); count.append(icon('bi-arrow-repeat spin')); }
+  else {
+    count = document.createElement('input');
+    count.className = 'cart-qty'; count.inputMode = 'numeric'; count.autocomplete = 'off';
+    count.setAttribute('aria-label', t('cart_quantity_input')); count.title = t('cart_quantity_input');
+    count.value = String(quantity); count.disabled = pending || !onSet || !canEdit;
+    const draft = drafts.get(draftKey);
+    if (draft && !count.disabled) {
+      count.value = draft.value;
+      // Re-rendered while typing: put the caret back once the box is in the page.
+      requestAnimationFrame(() => { if (count.isConnected) { count.focus(); count.setSelectionRange(draft.start, draft.end); } });
+    }
+    const remember = () => drafts.set(draftKey, {value: count.value, start: count.selectionStart, end: count.selectionEnd});
+    const commit = () => {
+      drafts.delete(draftKey);
+      const desired = parseQuantity(count.value);
+      // Not a whole number, or unchanged: put the real quantity back and send nothing.
+      if (desired === null || desired === quantity) { count.value = String(quantity); return; }
+      onSet(desired);
+    };
+    count.addEventListener('focus', () => { if (!drafts.has(draftKey)) count.select(); });
+    count.addEventListener('input', remember);
+    count.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); commit(); count.blur(); }
+      else if (event.key === 'Escape') { drafts.delete(draftKey); count.value = String(quantity); count.blur(); }
+      else queueMicrotask(remember);
+    });
+    // A blur caused by the list redrawing is not a commit; the new box takes over the draft.
+    count.addEventListener('blur', () => { if (count.isConnected && drafts.has(draftKey)) commit(); });
+  }
   stepper.append(button('bi-dash-lg', 'cart_decrease', pending || !quantity || !canDecrease, onDecrease), count,
     button('bi-plus-lg', increaseKey, pending || !canIncrease, onIncrease));
   box.append(stepper);
   const message = cart.message(target);
-  if (message) { const note = el('span', 'cart-note'); note.setAttribute('role', 'status'); note.append(icon('bi-exclamation-circle'), t(message)); box.append(note); }
+  if (message) {
+    const {key, params} = typeof message === 'string' ? {key: message, params: {}} : message;
+    const warning = key === 'cart_limit_reached';
+    const text = t(key, Object.fromEntries(Object.entries(params).map(([k, v]) => [k, number(v)])));
+    if (warning) showBubble(box, text, {started: cart.warningStarted(target)});
+    else {
+      const note = el('span', 'cart-note'); note.setAttribute('role', 'status');
+      note.append(icon('bi-exclamation-circle'), text); box.append(note);
+    }
+  }
   return box;
 }
 
-export function createCartPage({cart, details, amountDisplay, gameLabel, cardLink, currentView}) {
+export function createCartPage({cart, stock, details, amountDisplay, gameLabel, cardLink, currentView}) {
   let pendingRemove = null;
   // Number and rarity come with rows added from search; others are looked up once.
   function info(row) {
@@ -43,7 +86,7 @@ export function createCartPage({cart, details, amountDisplay, gameLabel, cardLin
   function item(row) {
     const known = info(row), rarity = known.rarity ?? null;
     // Cart names read "<rarity> <name>"; the rarity is shown as its own badge.
-    const name = rarity && row.name.startsWith(rarity + ' ') ? row.name.slice(rarity.length + 1) : row.name;
+    const full = row.name ?? '', name = rarity && full.startsWith(rarity + ' ') ? full.slice(rarity.length + 1) : full;
     return {...row, name, rarity, card_number: known.card_number ?? '', game: GAME_KEYS[row.game] ?? row.game, price: row.unit_price};
   }
   function tags(row, {withRarity = false} = {}) {
@@ -65,7 +108,9 @@ export function createCartPage({cart, details, amountDisplay, gameLabel, cardLin
   function stepper(row) {
     const target = targetOf(row);
     // Lowering re-reads the row's removal control, so rows without one stay read-only.
-    return cartStepper(cart, target, {quantity: row.quantity, canDecrease: row.removable,
+    const limits = cart.range(target, {type: row.type});
+    return cartStepper(cart, target, {quantity: row.quantity, canDecrease: row.removable, draftKey: productKey(target) + row.type,
+      canEdit: limits.min < limits.max, onSet: value => cart.setTo(target, value, {type: row.type, item: row}),
       onDecrease: () => cart.decrease(target, row.type), onIncrease: () => cart.increase(target, row)});
   }
   function removeButton(row) {
@@ -80,12 +125,43 @@ export function createCartPage({cart, details, amountDisplay, gameLabel, cardLin
     });
     return button;
   }
+  // Same badge language as search results, plus a warning when the shop holds fewer than the cart.
+  function stockBadge(row, state) {
+    const result = state.status === 'done' ? state : state.last;
+    if (!result) {
+      const badge = el('span', `badge unknown${state.status === 'failed' ? ' stock-failed' : ''}`);
+      if (state.status === 'failed') badge.append(icon('bi-exclamation-circle'), t('cart_stock_failed_short'));
+      else { badge.textContent = '—'; badge.title = t('cart_stock_idle'); }
+      return badge;
+    }
+    const quantity = result.quantity;
+    const short = quantity !== null && quantity > 0 && quantity < row.quantity;
+    const status = quantity === null ? 'unknown' : quantity === 0 ? 'out_of_stock' : 'in_stock';
+    const badge = el('span', `badge ${status}${short ? ' stock-short' : ''}`);
+    badge.append(icon(short ? 'bi-exclamation-triangle-fill' : STOCK_ICONS[status]),
+      t(short ? 'cart_stock_short' : status) + (quantity === null ? '' : ` (${number(quantity)})`));
+    if (short) badge.title = t('cart_stock_short_hint', {stock: number(quantity), quantity: number(row.quantity)});
+    return badge;
+  }
+  function stockControl(row) {
+    const target = targetOf(row), state = stock.get(target), loading = state.status === 'loading';
+    const box = el('div', 'cart-stock-control');
+    const badge = stockBadge(row, state); badge.setAttribute('role', 'status');
+    const key = loading ? 'cart_stock_loading' : state.status === 'failed' ? 'cart_retry_stock'
+      : state.status === 'idle' ? 'cart_get_stock' : 'cart_refresh_stock';
+    const button = el('button', 'icon-button cart-stock-fetch'); button.type = 'button';
+    button.append(icon(loading ? 'bi-arrow-repeat spin' : state.status === 'idle' ? 'bi-box-seam' : 'bi-arrow-clockwise'));
+    button.setAttribute('aria-label', t(key)); button.title = t(key);
+    button.disabled = loading;
+    button.addEventListener('click', () => stock.fetch(target));
+    box.append(badge, button); return box;
+  }
   function tableRow(row) {
     const tr = document.createElement('tr');
     const cell = (child, className = '') => {const td = el('td', className); td.append(child); tr.append(td);};
     const shown = item(row), product = el('div', 'product-summary'); product.append(cardImage(shown), cardLink(shown));
     cell(tags(row)); cell(rarityBadge(shown)); cell(cardNumber(row)); cell(product);
-    cell(amountDisplay(row.unit_price), 'numeric'); cell(stepper(row), 'cart-col');
+    cell(amountDisplay(row.unit_price), 'numeric'); cell(stockControl(row)); cell(stepper(row), 'cart-col');
     cell(amountDisplay(row.unit_price * row.quantity), 'numeric cart-line-total'); cell(removeButton(row), 'action-col');
     return tr;
   }
@@ -97,7 +173,7 @@ export function createCartPage({cart, details, amountDisplay, gameLabel, cardLin
     bottom.append(amountDisplay(row.unit_price), total);
     const actions = el('div', 'card-cart'); actions.append(stepper(row), removeButton(row));
     const shown = item(row);
-    card.append(top, cardImage(shown), cardLink(shown, 'card-name'), bottom, actions);
+    card.append(top, cardImage(shown), cardLink(shown, 'card-name'), bottom, stockControl(row), actions);
     return card;
   }
   function emptyState(state) {
@@ -112,12 +188,18 @@ export function createCartPage({cart, details, amountDisplay, gameLabel, cardLin
     const state = cart.state, rows = state.rows, view = currentView();
     const has = rows.length > 0;
     $('cart-stats').hidden = !state.configured || (!has && !state.complete);
+    // The note doubles as the way to check out: it opens YuYu-Tei's own cart (after the usual confirmation).
+    const checkout = cardLink({name: t('cart_checkout_name'), product_url: SHOP_CART_URL}, 'cart-checkout');
+    checkout.replaceChildren(el('span', '', t('cart_overview_note')), icon('bi-box-arrow-up-right'));
+    checkout.title = t('cart_checkout_hint');
+    $('cart-checkout-slot').replaceChildren(checkout);
     $('cart-kinds').textContent = number(rows.length);
     $('cart-quantity-total').textContent = state.totalQuantity === null ? '—' : number(state.totalQuantity);
     $('cart-subtotal').replaceChildren(state.subtotal === null ? '—' : amountDisplay(state.subtotal));
     $('cart-count').hidden = !has; $('cart-count').textContent = number(rows.length);
     $('cart-status').textContent = state.loading && has ? t('cart_loading') : state.error && has ? t(state.error) : '';
     $('cart-warning').hidden = state.complete;
+    $('cart-get-stock').disabled = !has || !state.configured || rows.some(row => stock.get(targetOf(row)).status === 'loading');
     $('cart-page-refresh').disabled = !state.configured || state.loading;
     $('cart-page-refresh').querySelector('.bi').classList.toggle('spin', state.loading);
     $('cart-rows').replaceChildren(...(view === 'list' ? rows.map(tableRow) : []));
@@ -133,6 +215,7 @@ export function createCartPage({cart, details, amountDisplay, gameLabel, cardLin
     if (pendingRemove && !rows.some(row => productKey(row) === productKey(pendingRemove) && row.type === pendingRemove.type))
       $('cart-remove-dialog').close();
   }
+  $('cart-get-stock').addEventListener('click', () => stock.fetchAll(cart.state.rows.map(targetOf)));
   $('cart-page-refresh').addEventListener('click', () => { details.retryFailed(); cart.refresh(); });
   $('cart-remove-cancel').addEventListener('click', () => $('cart-remove-dialog').close());
   $('cart-remove-confirm').addEventListener('click', () => {

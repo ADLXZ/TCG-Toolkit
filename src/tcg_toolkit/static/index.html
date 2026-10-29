@@ -150,15 +150,15 @@
 <div class="stat-tile"><span class="stat-label" data-i18n="cards_quantity_total"></span><span class="stat-value" id="cart-quantity-total"></span></div>
 <div class="stat-tile"><span class="stat-label" data-i18n="cart_subtotal"></span><span class="stat-value" id="cart-subtotal"></span></div>
 </div>
-<p class="cart-overview-note" data-i18n="cart_overview_note"></p>
+<div id="cart-checkout-slot" class="cart-overview-note"></div>
 </section>
 <section class="results">
 <div class="section-heading">
 <div class="heading-left"><h2 data-i18n="cart_items"></h2><span class="count" id="cart-count" hidden></span><span id="cart-status" role="status" aria-live="polite"></span></div>
-<div class="heading-actions"><button id="cart-page-refresh" type="button" class="secondary compact"><i class="bi bi-arrow-clockwise"></i><span data-i18n="cart_refresh"></span></button><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
+<div class="heading-actions"><button id="cart-get-stock" type="button" class="secondary compact"><i class="bi bi-box-seam"></i><span data-i18n="cart_get_stock"></span></button><button id="cart-page-refresh" type="button" class="secondary compact"><i class="bi bi-arrow-clockwise"></i><span data-i18n="cart_refresh"></span></button><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
 </div>
 <p id="cart-warning" class="cart-warning" role="status" hidden><i class="bi bi-exclamation-triangle"></i><span data-i18n="cart_incomplete_warning"></span></p>
-<div class="panel table-panel" id="cart-table" hidden><div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="cart_unit_price"></th><th class="cart-col" data-i18n="cart_quantity"></th><th class="numeric" data-i18n="cart_line_subtotal"></th><th class="action-col"><span class="sr-only" data-i18n="cards_actions"></span></th></tr></thead><tbody id="cart-rows"></tbody></table></div></div>
+<div class="panel table-panel" id="cart-table" hidden><div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="cart_unit_price"></th><th data-i18n="stock"></th><th class="cart-col" data-i18n="cart_quantity"></th><th class="numeric" data-i18n="cart_line_subtotal"></th><th class="action-col"><span class="sr-only" data-i18n="cards_actions"></span></th></tr></thead><tbody id="cart-rows"></tbody></table></div></div>
 <div id="cart-grid" class="card-grid" hidden></div>
 <div id="cart-empty" class="empty" hidden><i class="bi bi-cart3"></i><h3></h3><p id="cart-empty-action"></p></div>
 </section>
