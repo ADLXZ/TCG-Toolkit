@@ -44,11 +44,11 @@ test('increase adds one with a fresh idempotency key and keeps reserved rows sep
   let n = 0;
   const cart = createCart(client, () => {}, () => `key-${++n}`);
   await cart.refresh();
-  await cart.increase(target, 30);
+  await cart.increase(target, {price: 30});
   assert.deepEqual(client.calls.at(-1), ['add', {...target, counter: 1}, 'key-1']);
   assert.equal(cart.quantity(target), 4);
   assert.equal(cart.state.subtotal, 120);
-  await cart.increase({...target, cid: '1'}, 50);
+  await cart.increase({...target, cid: '1'}, {price: 50, name: 'New', game: 'lycee'});
   assert.equal(client.calls.at(-1)[2], 'key-2');
 });
 
@@ -98,4 +98,46 @@ test('clear drops replies from the previous account', async () => {
   resolve(cartOf([row(5)])); await pending;
   assert.equal(cart.quantity(target), 0);
   assert.equal(cart.state.loading, false);
+});
+
+
+test('credential import resets stale cart and enables refresh without querying', () => {
+  const client = fakeClient();
+  const cart = createCart(client);
+  cart.clear({syncCredentials: true});
+  assert.equal(cart.state.configured, true);
+  assert.equal(cart.state.totalQuantity, null);
+  assert.deepEqual(client.calls, []);
+});
+
+test('a product new to the cart keeps the search details for the cart page', async () => {
+  const client = fakeClient({query: async () => cartOf([]),
+    add: async () => ({after_quantity: 1})});
+  const cart = createCart(client, () => {}, () => 'key');
+  await cart.refresh();
+  await cart.increase(target, {price: 30, name: 'Card', game: 'lycee', product_url: 'https://yuyu-tei.jp/sell/lo/card/OS01/10044'});
+  assert.deepEqual(cart.state.rows.map(r => [r.name, r.game, r.quantity, r.type]), [['Card', 'lo', 1, 'normal']]);
+});
+
+test('adding to a product that only has reserved rows re-reads the cart', async () => {
+  const client = fakeClient({query: async () => { client.calls.push(['query']); return cartOf([row(1, 'reserved')]); }});
+  const cart = createCart(client, () => {}, () => 'key');
+  await cart.refresh();
+  await cart.increase(target);
+  assert.deepEqual(client.calls.map(c => c[0]), ['query', 'add', 'query']);
+  assert.equal(cart.state.rows.length, 1);
+});
+
+test('cart page lowers or removes the exact row type', async () => {
+  const removed = [];
+  const client = fakeClient({query: async () => cartOf([row(2), row(3, 'reserved')]),
+    remove: async card => { removed.push(card); return {cart: cartOf([row(2)])}; }});
+  const cart = createCart(client);
+  await cart.refresh();
+  await cart.decrease(target, 'reserved');
+  assert.deepEqual(client.calls.at(-1), ['set', {...target, type: 'reserved'}, 2]);
+  await cart.refresh();
+  await cart.remove(target, 'reserved');
+  assert.deepEqual(removed, [{...target, type: 'reserved'}]);
+  assert.equal(cart.quantity(target), 2);
 });

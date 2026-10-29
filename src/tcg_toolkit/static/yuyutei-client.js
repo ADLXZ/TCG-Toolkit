@@ -33,7 +33,10 @@ export function createYuyuteiClient({storage = browserStorage(), request = apiRe
     if (clear) erase();
   }
   function requireAccount() {
-    if (!userId || !token || getSessionToken() !== token) {
+    // Not activated yet (e.g. during a reload, before auth.js restores the account):
+    // refuse, but keep this tab's credentials for activateUser to pick up.
+    if (!userId) throw new Error('authentication_required');
+    if (!token || getSessionToken() !== token) {
       deactivate();
       throw new Error('authentication_required');
     }

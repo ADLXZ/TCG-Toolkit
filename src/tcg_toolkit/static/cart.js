@@ -44,10 +44,11 @@ export function createCart(client, onChange = () => {}, newKey = randomKey) {
   function configured() {
     try { return client.hasCredentials(); } catch { return false; }
   }
-  function clear() {
+  function clear({syncCredentials = false} = {}) {
     generation++;
     Object.assign(state, {configured: false, loading: false, error: '', rows: [], totalQuantity: null,
       subtotal: null, complete: true, busy: new Set(), messages: new Map()});
+    if (syncCredentials) state.configured = configured();
     onChange();
   }
   async function refresh() {
@@ -71,7 +72,8 @@ export function createCart(client, onChange = () => {}, newKey = randomKey) {
     state.busy.add(key); state.messages.delete(key); onChange();
     let resync = false;
     try {
-      await action();
+      // An action returns true when its local result is incomplete and needs a re-read.
+      resync = Boolean(await action());
       // This reply is newer than any query still in flight.
       reads++; state.loading = false; state.error = '';
     } catch (error) {
@@ -84,32 +86,42 @@ export function createCart(client, onChange = () => {}, newKey = randomKey) {
     }
     if (resync && current === generation) await refresh();
   }
-  function increase(target, unitPrice = 0) {
+  // `item` is a search result (or cart row) describing a product the cart may not list yet.
+  function increase(target, item = {}) {
     return operate(target, async () => {
       const result = await client.add({...target, counter: 1}, newKey());
       // Reflect the verified count locally instead of re-reading the whole cart.
-      const rows = rowsFor(target), others = rows.filter(row => row.type !== 'normal');
-      const normal = rows.find(row => row.type === 'normal');
-      const own = result.after_quantity - others.reduce((sum, row) => sum + row.quantity, 0);
+      const rows = rowsFor(target), normal = rows.find(row => row.type === 'normal');
+      // Only reserved rows: which row grew is unknown, so read the cart again.
+      if (rows.length && !normal) return true;
+      const own = result.after_quantity - rows.filter(row => row !== normal).reduce((sum, row) => sum + row.quantity, 0);
       if (normal) normal.quantity = own;
-      else state.rows.push({...target, type: 'normal', quantity: own, unit_price: unitPrice});
+      else state.rows.push({...target, type: 'normal', quantity: own, unit_price: item.price ?? item.unit_price ?? 0,
+        name: item.name ?? '', game: GAME_PATHS[item.game] ?? item.game ?? '', product_url: item.product_url ?? '',
+        image_url: item.image_url ?? null, card_number: item.card_number ?? null, rarity: item.rarity ?? null, removable: true});
       if (state.complete) {
         state.totalQuantity = state.rows.reduce((sum, row) => sum + row.quantity, 0);
         state.subtotal = state.rows.reduce((sum, row) => sum + row.quantity * row.unit_price, 0);
       }
     });
   }
-  function decrease(target) {
+  // Without a type, the normal row goes first; reserved rows are lowered once it is gone.
+  function decrease(target, type = null) {
     const rows = rowsFor(target);
-    // Normal rows first; reserved rows of the same card are lowered once it is gone.
-    const row = rows.find(item => item.type === 'normal') ?? rows[0];
+    const row = type ? rows.find(item => item.type === type) : rows.find(item => item.type === 'normal') ?? rows[0];
     if (!row) return Promise.resolve();
     return operate(target, async () => {
       const result = await client.setQuantity({...target, type: row.type}, row.quantity - 1);
       apply(result.cart);
     });
   }
-  return {state, refresh, clear, quantity, increase, decrease,
+  function remove(target, type) {
+    return operate(target, async () => {
+      const result = await client.remove({...target, type});
+      apply(result.cart);
+    });
+  }
+  return {state, refresh, clear, quantity, increase, decrease, remove,
     isBusy: target => state.busy.has(productKey(target)),
     message: target => state.messages.get(productKey(target))};
 }

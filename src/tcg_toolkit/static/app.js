@@ -9,6 +9,8 @@ import {fetchRate, formatPrice} from './currency.js';
 import {yuyuteiClient} from './yuyutei-client.js';
 import {createCart, cartTarget} from './cart.js';
 import {bindCartSettings} from './cart-settings.js';
+import {cartStepper, createCartPage} from './cart-page.js';
+import {createProductDetails} from './product-details.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
 const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg", "ws": "ws", "pm": "pm"};
@@ -20,12 +22,14 @@ let view = localStorage.getItem('view') === 'grid' ? 'grid' : 'list';
 const el = (tag, className = '', text = '') => {const node = document.createElement(tag); node.className = className; node.textContent = text; return node;};
 const icon = name => el('i', `bi ${name}`);
 let displayCurrency = 'JPY', exchangeRate = 1, currencyStatus = null, currencyRequest = 0;
-function priceDisplay(item) {
+// Converted amount with the original yen price underneath when another currency is shown.
+function amountDisplay(amount) {
   const price = el('span', 'converted-price');
-  price.append(el('span', '', formatPrice(item.price, displayCurrency, exchangeRate, getLanguage())));
-  if (displayCurrency !== 'JPY') price.append(el('small', 'original-price', formatPrice(item.price, 'JPY', 1, getLanguage())));
+  price.append(el('span', '', formatPrice(amount, displayCurrency, exchangeRate, getLanguage())));
+  if (displayCurrency !== 'JPY') price.append(el('small', 'original-price', formatPrice(amount, 'JPY', 1, getLanguage())));
   return price;
 }
+const priceDisplay = item => amountDisplay(item.price);
 const money = price => formatPrice(price, displayCurrency, exchangeRate, getLanguage());
 const searchFilters = createFilterPanel($('search-filters'), {onChange: () => {limit = 100; render();}, formatPrice: money});
 const favoriteFilters = createFilterPanel($('favorites-filters'), {onChange: () => renderFavorites(), formatPrice: money});
@@ -34,7 +38,7 @@ $('currency').addEventListener('change', async () => {
   const target = $('currency').value, request = ++currencyRequest;
   displayCurrency = 'JPY'; exchangeRate = 1;
   currencyStatus = null;
-  renderCurrencyStatus(); render(); renderFavorites();
+  renderCurrencyStatus(); render(); renderFavorites(); cartPage.render();
   try {
     let fetchedAt = null;
     const rate = await fetchRate(target, requestAPI, value => { fetchedAt = value; });
@@ -45,12 +49,14 @@ $('currency').addEventListener('change', async () => {
     if (request !== currencyRequest) return;
     $('currency').value = 'JPY'; currencyStatus = null;
   }
-  renderCurrencyStatus(); render(); renderFavorites();
+  renderCurrencyStatus(); render(); renderFavorites(); cartPage.render();
 });
 let userId = null, requestAPI = fetch;
 let history = [];
 const favorites = createFavorites(() => {render(); renderFavorites();});
-const cart = createCart(yuyuteiClient, () => {render(); renderCartSummary();});
+let cartPage = null;
+const productDetails = createProductDetails(() => cartPage?.render());
+const cart = createCart(yuyuteiClient, () => {render(); renderCartSummary(); cartPage?.render();});
 const cartSettings = bindCartSettings(yuyuteiClient, cart);
 function renderCartSummary() {
   const state = cart.state, box = $('cart-summary');
@@ -66,31 +72,21 @@ function renderCartSummary() {
   $('cart-refresh').hidden = !state.configured;
   $('cart-refresh').disabled = state.loading;
   $('cart-refresh').querySelector('.bi').classList.toggle('spin', state.loading);
+  $('cart-nav-count').hidden = !state.configured || !state.totalQuantity;
+  $('cart-nav-count').textContent = state.totalQuantity ? state.totalQuantity.toLocaleString(getLanguage()) : '';
   cartSettings.render();
 }
 $('cart-refresh').addEventListener('click', () => cart.refresh());
+cartPage = createCartPage({cart, details: productDetails, amountDisplay, gameLabel, cardLink, currentView: () => view});
+document.addEventListener('viewchange', () => cartPage.render());
 // +1 / −1 against the real YuYu-Tei cart; the count shown is what the shop reported.
 function cartControls(item) {
-  const box = el('div', 'cart-controls'), target = cartTarget(item), state = cart.state;
-  if (!target || !state.configured) { box.append(el('span', 'muted', '—')); return box; }
-  const quantity = cart.quantity(target), busy = cart.isBusy(target);
-  const pending = busy || (state.loading && !state.rows.length);
-  const stepper = el('div', `cart-stepper${quantity ? ' active' : ''}`); stepper.setAttribute('role', 'group');
-  stepper.setAttribute('aria-label', t('cart_quantity_label', {quantity}));
-  const button = (iconName, key, disabled, action) => {
-    const node = el('button', 'cart-step'); node.type = 'button'; node.append(icon(iconName));
-    node.setAttribute('aria-label', t(key)); node.title = t(key); node.disabled = disabled;
-    node.addEventListener('click', action); return node;
-  };
+  const target = cartTarget(item);
+  if (!target || !cart.state.configured) { const box = el('div', 'cart-controls'); box.append(el('span', 'muted', '—')); return box; }
+  const quantity = cart.quantity(target);
   const soldOut = item.stock_status === 'out_of_stock' || (item.stock_quantity != null && quantity >= item.stock_quantity);
-  const count = el('span', 'cart-qty');
-  if (busy) count.append(icon('bi-arrow-repeat spin')); else count.textContent = quantity.toLocaleString(getLanguage());
-  stepper.append(button('bi-dash-lg', 'cart_decrease', pending || !quantity, () => cart.decrease(target)), count,
-    button('bi-plus-lg', soldOut ? 'cart_no_stock' : 'cart_increase', pending || soldOut, () => cart.increase(target, item.price)));
-  box.append(stepper);
-  const message = cart.message(target);
-  if (message) { const note = el('span', 'cart-note'); note.setAttribute('role', 'status'); note.append(icon('bi-exclamation-circle'), t(message)); box.append(note); }
-  return box;
+  return cartStepper(cart, target, {quantity, canIncrease: !soldOut, increaseKey: soldOut ? 'cart_no_stock' : 'cart_increase',
+    onDecrease: () => cart.decrease(target), onIncrease: () => cart.increase(target, item)});
 }
 function closeHistory() { $('search-history').hidden = true; $('keyword').setAttribute('aria-expanded', 'false'); }
 function showHistory() {
@@ -247,7 +243,11 @@ function renderFavorites() {
 }
 $('favorites-refresh').addEventListener('click', () => favorites.refreshAll());
 $('favorites-retry').addEventListener('click', () => favorites.load());
-window.addEventListener('hashchange', () => {render(); renderFavorites();});
+window.addEventListener('hashchange', () => {
+  render(); renderFavorites();
+  // Each visit reads the shop again: the cart may have changed on YuYu-Tei itself.
+  if (location.hash === '#cart' && userId) cart.refresh();
+});
 document.addEventListener('inventorychange', () => {render(); renderFavorites();});
 function tableRow(item, withCart = false) {
   const row = document.createElement('tr');
@@ -319,7 +319,11 @@ $('search-form').addEventListener('submit', async event => {
       }
       return data;
     },
-    onPage: result => {if (current === batch) {items.push(...result.items); render();}},
+    onPage: result => {if (current === batch) {
+      items.push(...result.items);
+      for (const item of result.items) productDetails.remember(cartTarget(item), item);
+      render();
+    }},
     onError: (game, error) => {if (current === batch) {errors.push({game, key: error.translationKey || 'unable_to_search_this_game'}); renderErrors();}}, wait});
   if (current !== batch) return;
   controller = null; $('stop').hidden = true;
@@ -338,7 +342,7 @@ function renderErrors() {
 }
 function refreshLanguage() {
   applyLanguage(document); $('language').value = getLanguage();
-  setStatus(statusKey, statusIcon); renderErrors(); renderCurrencyStatus(); validateSearch(); render(); renderFavorites(); renderCartSummary();
+  setStatus(statusKey, statusIcon); renderErrors(); renderCurrencyStatus(); validateSearch(); render(); renderFavorites(); renderCartSummary(); cartPage.render();
 }
 $('language').addEventListener('change', () => {setLanguage($('language').value); refreshLanguage();});
 $('detail-cancel').addEventListener('click', () => $('detail-dialog').close());
@@ -348,7 +352,7 @@ refreshLanguage(); setView(view);
 
 export function clearUser() {
   ++batch; ++currencyRequest; controller?.abort(); controller = null;
-  favorites.clear(); clearCards(); cartSettings.reset(); cart.clear();
+  favorites.clear(); clearCards(); cartSettings.reset(); cartPage.close(); productDetails.clear(); cart.clear();
   userId = null; items = []; history = []; started = false; errors = [];
   displayCurrency = 'JPY'; exchangeRate = 1; currencyStatus = null;
   $('currency').value = 'JPY'; $('keyword').value = ''; $('stop').hidden = true;
@@ -361,6 +365,6 @@ export function clearUser() {
 export function activateUser(id, request) {
   clearUser(); userId = id; requestAPI = request;
   history = readHistory(localStorage, userId); $('search').inert = false;
-  favorites.activate(requestAPI); activateCards(requestAPI); cart.refresh();
+  favorites.activate(requestAPI); activateCards(requestAPI); productDetails.activate(requestAPI); cart.refresh();
   refreshLanguage();
 }

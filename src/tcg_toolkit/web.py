@@ -22,6 +22,7 @@ from .favorites import router as favorites_router
 from .cards import router as cards_router
 from .official import router as official_router
 from .yuyutei_cart import router as yuyutei_router
+from .product_details import router as product_router
 
 
 @asynccontextmanager
@@ -49,6 +50,7 @@ app.include_router(favorites_router)
 app.include_router(cards_router)
 app.include_router(official_router)
 app.include_router(yuyutei_router)
+app.include_router(product_router)
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher, Game.WS: WSSearcher, Game.PM: PMSearcher}
 
 

@@ -578,3 +578,13 @@ def test_add_returns_verified_snapshot_and_replays_it_without_upstream(client, m
     assert replay.json() == first.json()
     assert replay.headers['idempotency-replayed'] == 'true'
     assert [r.method for r in calls] == ['GET', 'POST', 'GET']
+
+
+@pytest.mark.parametrize('img,expected', [('<img src="/img/a.jpg">', 'https://yuyu-tei.jp/img/a.jpg'),
+    ('<img data-src="https://card.yuyu-tei.jp/b.jpg">', 'https://card.yuyu-tei.jp/b.jpg'),
+    ('<img src="javascript:alert(1)">', None), ('', None)])
+def test_cart_query_thumbnail_is_optional(client, upstream, img, expected):
+    upstream[1]['page'] = cart_html().replace('<img src="x">', img)
+    response = client.post(BASE + '/cart/query', json={'credentials': SECRETS})
+    assert response.status_code == 200
+    assert response.json()['items'][0]['image_url'] == expected

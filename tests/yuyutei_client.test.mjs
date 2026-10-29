@@ -130,3 +130,20 @@ test('malformed storage is cleared and unsuccessful calls are never retried', as
   client.clearCredentials();
   assert.equal(client.hasCredentials(), false);
 });
+
+test('reading before activation (page reload) keeps the tab credentials', () => {
+  const storage = memory(), state = {token: 'login-a'};
+  const make = () => createYuyuteiClient({storage, request: async () => new Response('{}'), getSessionToken: () => state.token});
+  const first = make(); first.activateUser('alice'); first.saveCredentials(secrets);
+  // Reload: auth.js deactivates without clearing; app.js renders before activateUser runs.
+  const reloaded = make(); reloaded.deactivate({clear: false});
+  assert.throws(() => reloaded.hasCredentials(), /authentication_required/);
+  assert.throws(() => reloaded.saveCredentials(secrets), /authentication_required/);
+  assert.notEqual(storage.getItem(CREDENTIALS_KEY), null);
+  reloaded.activateUser('alice');
+  assert.equal(reloaded.hasCredentials(), true);
+  // A changed site login is still a reason to drop them.
+  state.token = 'login-b';
+  assert.throws(() => reloaded.hasCredentials(), /authentication_required/);
+  assert.equal(storage.getItem(CREDENTIALS_KEY), null);
+});

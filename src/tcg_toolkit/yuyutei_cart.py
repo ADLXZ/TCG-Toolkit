@@ -240,13 +240,18 @@ def parse_cart_row(row, require_removal=False):
     removable = any(action.search(a['href']) for a in row.select('a[href]'))
     if require_removal and not removable:
         raise ValueError('Missing removal action')
+    # Thumbnail only: optional, never required to read or change the row.
+    image = next((img for img in row.select('img') if img.get('src') or img.get('data-src')), None)
+    image_url = urljoin(CART_PAGE, (image.get('src') or image.get('data-src')).strip()) if image else None
+    if image_url and urlsplit(image_url).scheme != 'https':
+        image_url = None
     quantity, price = value('itemValue'), value('itemPrice')
     if not quantity.isascii() or not quantity.isdecimal() or not price.isascii() or not price.isdecimal():
         raise ValueError('Invalid cart amounts')
     return {'gid': int(identity[1]), 'game': game, 'ver': ver, 'cid': cid,
             'kizu': int(identity[2]), 'type': kind, 'name': link.get_text(' ', strip=True),
             'quantity': int(quantity), 'unit_price': int(price), 'currency': 'JPY',
-            'product_url': url.geturl(), 'removable': removable, '_cart_item_id': item_id}
+            'product_url': url.geturl(), 'image_url': image_url, 'removable': removable, '_cart_item_id': item_id}
 
 
 def parse_cart(html, *, strict=True, require_removal=False):
