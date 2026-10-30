@@ -2,6 +2,7 @@ services:
   web:
     build: .
     environment:
+      TCG_ALLOW_PROXY_SWITCH: "${TCG_ALLOW_PROXY_SWITCH:-true}"
       RAPIDAPI_KEY: "${RAPIDAPI_KEY:-}"
       TCG_SEARCH_PROXY_URL: "${TCG_SEARCH_PROXY_URL-http://62.234.212.90:8080/proxy}"
       TCG_CURRENCY_CACHE: /app/data/currency.sqlite3

@@ -54,6 +54,11 @@
 <span id="account-status" role="alert"></span>
 </div>
 </section>
+<section id="proxy-settings" class="panel proxy-settings" aria-labelledby="proxy-title" hidden>
+<span class="account-icon"><i class="bi bi-hdd-network"></i></span>
+<div class="proxy-text"><h2 id="proxy-title" data-i18n="proxy_title"></h2><p id="proxy-help" data-i18n="proxy_help"></p></div>
+<button type="button" id="proxy-enabled" class="switch" role="switch" aria-checked="true" aria-describedby="proxy-help"><span class="switch-label" data-i18n="proxy_enabled"></span><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></button>
+</section>
 <section class="panel cart-settings" id="cart-settings" aria-labelledby="cart-settings-title">
 <div class="cart-settings-head"><span class="account-icon"><i class="bi bi-cart3"></i></span><div class="cart-settings-text"><h2 id="cart-settings-title" data-i18n="cart_settings_title"></h2><p><strong data-i18n="cart_settings_intro_lead"></strong> <span data-i18n="cart_settings_intro"></span></p></div>
 <div class="cart-settings-meta"><span id="cart-settings-state" class="cart-state" role="status"><i id="cart-settings-state-icon" aria-hidden="true"></i><span id="cart-settings-state-label"></span></span><button type="button" id="cart-settings-toggle" class="icon-button cart-settings-toggle" aria-controls="cart-settings-body" hidden><i id="cart-settings-toggle-icon" class="bi bi-chevron-down" aria-hidden="true"></i></button></div></div>
@@ -101,11 +106,7 @@
 </form>
 </div>
 </section>
-<div class="account-grid">
-<section class="panel account-card"><span class="account-icon"><i class="bi bi-person-vcard"></i></span><h2 data-i18n="auth_profile"></h2><span class="soon" data-i18n="auth_coming"></span></section>
-<section class="panel account-card"><span class="account-icon"><i class="bi bi-shield-lock"></i></span><h2 data-i18n="auth_security"></h2><span class="soon" data-i18n="auth_coming"></span></section>
-<section class="panel account-card"><span class="account-icon"><i class="bi bi-sliders"></i></span><h2 data-i18n="auth_preferences"></h2><span class="soon" data-i18n="auth_coming"></span></section>
-</div>
+
 </main>
 <main id="cards-panel" hidden>
 <header><h1 data-i18n="cards_title"></h1></header>

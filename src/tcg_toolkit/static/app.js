@@ -1,3 +1,4 @@
+import {createProxySettings} from './proxy-settings.js';
 import {clearCards, activateCards, ownedQuantity} from './cards-ui.js';
 import {createFavorites, cardKey} from './favorites.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
@@ -54,6 +55,7 @@ $('currency').addEventListener('change', async () => {
   }
   renderCurrencyStatus(); render(); renderFavorites(); cartPage.render();
 });
+const proxySettings = createProxySettings();
 let userId = null, requestAPI = fetch;
 let history = [];
 const favorites = createFavorites(() => {render(); renderFavorites();});
@@ -362,7 +364,7 @@ refreshLanguage(); setView(view);
 
 export function clearUser() {
   ++batch; ++currencyRequest; controller?.abort(); controller = null;
-  favorites.clear(); clearCards(); cartSettings.reset(); cartPage.close(); productDetails.clear(); cartStock.clear(); cart.clear();
+  proxySettings.clear(); favorites.clear(); clearCards(); cartSettings.reset(); cartPage.close(); productDetails.clear(); cartStock.clear(); cart.clear();
   userId = null; items = []; history = []; started = false; errors = [];
   displayCurrency = 'JPY'; exchangeRate = 1; currencyStatus = null;
   $('currency').value = 'JPY'; $('keyword').value = ''; $('stop').hidden = true;
@@ -375,6 +377,6 @@ export function clearUser() {
 export function activateUser(id, request) {
   clearUser(); userId = id; requestAPI = request;
   history = readHistory(localStorage, userId); $('search').inert = false;
-  favorites.activate(requestAPI); activateCards(requestAPI); productDetails.activate(requestAPI); cartStock.activate(requestAPI); cart.refresh();
+  proxySettings.activate(); favorites.activate(requestAPI); activateCards(requestAPI); productDetails.activate(requestAPI); cartStock.activate(requestAPI); cart.refresh();
   refreshLanguage();
 }

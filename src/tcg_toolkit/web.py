@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import (ChaosTCGSearcher, Game, LyceeSearcher, SearchParseError,
                SearchRequestError, WSRSearcher, WSSearcher, PMSearcher)
+from .external.search_proxy import direct_search
 from .external import CurrencyClient, CurrencyConfigError, CurrencyRequestError, TargetCurrency
 
 # Slim images may lack a system MIME table entry for the game logos.
@@ -52,6 +53,29 @@ app.include_router(official_router)
 app.include_router(yuyutei_router)
 app.include_router(product_router)
 SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher, Game.WS: WSSearcher, Game.PM: PMSearcher}
+
+
+def proxy_switch_allowed():
+    return os.getenv('TCG_ALLOW_PROXY_SWITCH', '').lower() == 'true'
+
+
+@app.get('/api/yuyutei/proxy-config', dependencies=[Depends(current_user)])
+def proxy_config():
+    return {'available': proxy_switch_allowed()}
+
+
+@app.middleware('http')
+async def request_proxy_mode(request, call_next):
+    direct = request.headers.get('x-tcg-direct') == '1'
+    if direct and not proxy_switch_allowed():
+        from fastapi.responses import JSONResponse
+        return JSONResponse({'detail': 'proxy_switch_disabled'}, status_code=403,
+                            headers={'Cache-Control': 'no-store'})
+    token = direct_search.set(direct)
+    try:
+        return await call_next(request)
+    finally:
+        direct_search.reset(token)
 
 
 @app.middleware('http')
