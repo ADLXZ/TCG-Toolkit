@@ -16,7 +16,7 @@
 <body class="signed-out">
 <aside>
 <a class="brand" href="./"><i class="bi bi-stack"></i><span data-i18n="tcg"></span><span data-i18n="toolkit"></span></a>
-<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span><span id="favorites-nav-count" class="nav-count" hidden></span></a><a href="#cards"><i class="bi bi-collection"></i><span data-i18n="cards_title"></span><span id="cards-nav-count" class="nav-count" hidden></span></a><a href="#cart"><i class="bi bi-cart3"></i><span data-i18n="cart_title"></span><span id="cart-nav-count" class="nav-count" hidden></span></a></nav>
+<nav id="app-nav" hidden><div class="nav-group" role="group" aria-labelledby="nav-group-shop"><button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-shop-items"><span class="nav-group-name" data-i18n="nav_group_shop"></span><span class="nav-group-current"></span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><span class="nav-group-label" id="nav-group-shop" data-i18n="nav_group_shop"></span><div class="nav-group-items" id="nav-group-shop-items"><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span><span id="favorites-nav-count" class="nav-count" hidden></span></a><a href="#cart"><i class="bi bi-cart3"></i><span data-i18n="cart_title"></span><span id="cart-nav-count" class="nav-count" hidden></span></a></div></div><div class="nav-group" role="group" aria-labelledby="nav-group-local"><button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-local-items"><span class="nav-group-name" data-i18n="nav_group_local"></span><span class="nav-group-current"></span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><span class="nav-group-label" id="nav-group-local" data-i18n="nav_group_local"></span><div class="nav-group-items" id="nav-group-local-items"><a href="#cards"><i class="bi bi-collection"></i><span data-i18n="cards_title"></span><span id="cards-nav-count" class="nav-count" hidden></span></a></div></div></nav>
 <div id="app-settings" class="sidebar-settings" hidden>
 <label class="setting" data-i18n-title="language"><i class="bi bi-globe2"></i><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label>
 <label class="setting" data-i18n-title="display_currency"><i class="bi bi-currency-exchange"></i><select id="currency" data-i18n-aria-label="display_currency"><option value="JPY" data-i18n="currency_jpy"></option><option value="CNY" data-i18n="currency_cny"></option><option value="CAD" data-i18n="currency_cad"></option></select></label>
@@ -148,9 +148,9 @@
 <div class="stat-tiles">
 <div class="stat-tile"><span class="stat-label" data-i18n="cart_kinds"></span><span class="stat-value" id="cart-kinds"></span></div>
 <div class="stat-tile"><span class="stat-label" data-i18n="cards_quantity_total"></span><span class="stat-value" id="cart-quantity-total"></span></div>
-<div class="stat-tile"><span class="stat-label" data-i18n="cart_subtotal"></span><span class="stat-value" id="cart-subtotal"></span></div>
+<div class="stat-tile"><span class="stat-label" data-i18n="cart_subtotal"></span><span class="stat-value" id="cart-subtotal"></span><span class="stat-note" data-i18n="cart_subtotal_note"></span></div>
 </div>
-<div id="cart-checkout-slot" class="cart-overview-note"></div>
+<div id="cart-checkout-slot" class="cart-checkout-slot"></div>
 </section>
 <section class="results">
 <div class="section-heading">

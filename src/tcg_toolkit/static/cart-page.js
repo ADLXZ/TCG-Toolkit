@@ -188,9 +188,11 @@ export function createCartPage({cart, stock, details, amountDisplay, gameLabel, 
     const state = cart.state, rows = state.rows, view = currentView();
     const has = rows.length > 0;
     $('cart-stats').hidden = !state.configured || (!has && !state.complete);
-    // The note doubles as the way to check out: it opens YuYu-Tei's own cart (after the usual confirmation).
+    // Checkout happens on YuYu-Tei: open its own cart (after the usual leaving-the-site confirmation).
     const checkout = cardLink({name: t('cart_checkout_name'), product_url: SHOP_CART_URL}, 'cart-checkout');
-    checkout.replaceChildren(el('span', '', t('cart_overview_note')), icon('bi-box-arrow-up-right'));
+    const logo = document.createElement('img');
+    logo.src = './yuyutei-logo.webp'; logo.alt = ''; logo.className = 'cart-checkout-logo'; logo.setAttribute('aria-hidden', 'true');
+    checkout.replaceChildren(logo, el('span', '', t('cart_checkout')), icon('bi-box-arrow-up-right'));
     checkout.title = t('cart_checkout_hint');
     $('cart-checkout-slot').replaceChildren(checkout);
     $('cart-kinds').textContent = number(rows.length);

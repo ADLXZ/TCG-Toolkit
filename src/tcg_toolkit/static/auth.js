@@ -2,6 +2,7 @@ import {apiRequest, getToken, setToken, TOKEN_KEY} from './api.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {createAuthenticatedRequest} from './auth-client.js';
 import {yuyuteiClient} from './yuyutei-client.js';
+import {bindNavMenus, syncNavMenus} from './nav-menu.js';
 const $ = id => document.getElementById(id);
 let user = null, searchApp = null, registering = false, errorKey = '';
 const api = createAuthenticatedRequest(() => signedOut('auth_expired'), apiRequest);
@@ -24,9 +25,11 @@ function showPage() {
     if (a.hash === (cards ? '#cards' : cart ? '#cart' : account ? '#account' : favorites ? '#favorites' : '#search')) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
+  syncNavMenus();
 }
 function refresh() {
   applyLanguage(document);
+  syncNavMenus();  // page names in the dropdown toggles follow the language
   $('auth-language').value = getLanguage();
   $('auth-heading').textContent = t(registering ? 'auth_register' : 'auth_login');
   $('auth-submit').textContent = t(registering ? 'auth_register' : 'auth_login');
@@ -120,6 +123,7 @@ $('logout').addEventListener('click', async () => {
 $('auth-language').addEventListener('change', () => {setLanguage($('auth-language').value); refresh();});
 $('language').addEventListener('change', () => {setLanguage($('language').value); refresh();});
 window.addEventListener('hashchange', showPage);
+bindNavMenus();
 refresh(); showPage();
 let restoreGeneration = 0;
 async function restoreSession() {
