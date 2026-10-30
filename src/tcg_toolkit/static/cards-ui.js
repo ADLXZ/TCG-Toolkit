@@ -353,6 +353,8 @@ function officialCard(item) {
   return button;
 }
 function renderOfficial() {
+  $('sev-hint').hidden = officialGame() !== 'sev';
+  $('sev-en-hint').hidden = !['sev en', 'sev_en'].includes(officialGame());
   const panel = $('official-panel'), supported = supportsOfficial();
   panel.hidden = !supported;
   if (!supported) return;

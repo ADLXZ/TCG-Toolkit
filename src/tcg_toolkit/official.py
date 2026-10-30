@@ -182,3 +182,72 @@ def search_pm(word: str = Query(min_length=1, max_length=100)):
         raise HTTPException(504, detail='official_timeout') from exc
     except (httpx.HTTPError, ValueError) as exc:
         raise HTTPException(502, detail='official_unavailable') from exc
+
+
+SEV_DETAIL = 'https://shadowverse-evolve.com/cardlist/'
+SEV_EN_DETAIL = 'https://en.shadowverse-evolve.com/cards/'
+SEV_EN_RARITIES = {'Bronze': 'B', 'Bronze Rare': 'B', 'Silver': 'S', 'Silver Rare': 'S',
+                   'Gold': 'G', 'Gold Rare': 'G', 'Legendary': 'L', 'Ultimate Rare': 'U',
+                   'Super Legendary': 'SL', 'Special': 'SP', 'Super Special': 'SSP',
+                   'Premium': 'P'}
+
+
+def _parse_sev_detail(html, number, *, english):
+    game = 'SEV EN' if english else 'SEV'
+    base = SEV_EN_DETAIL if english else SEV_DETAIL
+    soup = BeautifulSoup(html, 'html.parser')
+    detail = soup.select_one('.cardlist-Detail_Box_Inner')
+    if detail is None:
+        if soup.select_one('form#searchForm'):
+            return []
+        raise ValueError('Unrecognized SEV detail page')
+    printed = detail.select_one('.illustrator .heading')
+    if printed is None:
+        raise ValueError('Missing SEV card number')
+    if printed.get_text(strip=True) != number:
+        return []
+    name = detail.select_one('h1.ttl')
+    image = detail.select_one('.img img[src]')
+    fields = {dt.get_text(strip=True): dt.find_next_sibling('dd').get_text(strip=True)
+              for dt in detail.select('dt') if dt.find_next_sibling('dd')}
+    rarity = fields.get('Rarity' if english else 'レアリティ')
+    if name is None or not name.get_text(strip=True) or not rarity or image is None:
+        raise ValueError('Missing SEV metadata')
+    image_url = urljoin(base, image['src'])
+    if urlsplit(image_url).scheme not in ('http', 'https'):
+        image_url = None
+    return [dict(game=game, card_number=number, name=name.get_text(' ', strip=True),
+                 rarity=SEV_EN_RARITIES.get(rarity, rarity) if english else rarity, image_url=image_url)]
+
+
+def parse_sev_en(html, number):
+    return _parse_sev_detail(html, number, english=True)
+
+
+def parse_sev(html, number):
+    return _parse_sev_detail(html, number, english=False)
+
+
+def _search_sev(word, *, english):
+    number = word.strip()
+    if not number:
+        raise HTTPException(422, detail='empty_keyword')
+    try:
+        with httpx.Client(timeout=20, follow_redirects=True) as client:
+            response = client.get(SEV_EN_DETAIL if english else SEV_DETAIL, params={'cardno': number})
+            response.raise_for_status()
+        return {'items': _parse_sev_detail(response.text, number, english=english)}
+    except httpx.TimeoutException as exc:
+        raise HTTPException(504, detail='official_timeout') from exc
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(502, detail='official_unavailable') from exc
+
+
+@router.get('/sev_en/search')
+def search_sev_en(word: str = Query(min_length=1, max_length=100)):
+    return _search_sev(word, english=True)
+
+
+@router.get('/sev/search')
+def search_sev(word: str = Query(min_length=1, max_length=100)):
+    return _search_sev(word, english=False)

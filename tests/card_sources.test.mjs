@@ -26,17 +26,15 @@ test('official games keep their sources; other games have no lookup', () => {
   assert.equal(lookupSource('Unknown', 'test'), null);
 });
 
-test('SEV inventory lookup preserves its Japanese game and rarity code', () => {
-  const config = lookupSource('SEV', 'BP01-U01');
-  assert.equal(config.url, '/api/search?game=sev&page=1&keyword=BP01-U01');
-  const [item] = lookupItems(config, [{game: 'sev', card_number: 'BP01-U01', name: 'Card', rarity: 'UR'}]);
-  assert.equal(item.game, 'SEV');
-  assert.equal(item.rarity, 'UR');
-  assert.equal(item.source, 'yuyutei');
-  assert.equal(item.is_official, false);
+test('SEV inventory uses Japanese official data', () => {
+  const config = lookupSource('SEV', 'CP04-021');
+  assert.equal(config.url, '/api/official/sev/search?word=CP04-021');
+  assert.equal(config.marketplace, false);
+  const items = [{game: 'SEV', rarity: 'LG'}];
+  assert.equal(lookupItems(config, items), items);
 });
 
 test('SEV EN never reuses the Japanese marketplace source', () => {
-  assert.equal(lookupSource('SEV EN', 'BP01'), null);
-  assert.equal(lookupSource('sev_en', 'BP01'), null);
+  assert.equal(lookupSource('SEV EN', 'CP04-021EN').url, '/api/official/sev_en/search?word=CP04-021EN');
+  assert.equal(lookupSource('sev_en', 'BP01').marketplace, false);
 });

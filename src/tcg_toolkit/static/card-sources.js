@@ -1,11 +1,11 @@
-// Inventory lookup source policy; ChaosTCG and SEV use marketplace snapshots.
+// Inventory lookup source policy; ChaosTCG uses marketplace snapshots.
 export function lookupSource(game, word) {
-  const code = game.trim().toLowerCase();
-  if (code === 'chaostcg' || code === 'chaos' || code === 'sev') return {
-    marketplace: true, game: code === 'sev' ? 'SEV' : 'ChaosTCG',
-    url: '/api/search?game=' + (code === 'sev' ? 'sev' : 'chaos') + '&page=1&keyword=' + encodeURIComponent(word)
+  const code = game.trim().toLowerCase().replace('sev en', 'sev_en');
+  if (code === 'chaostcg' || code === 'chaos') return {
+    marketplace: true, game: 'ChaosTCG',
+    url: '/api/search?game=' + 'chaos' + '&page=1&keyword=' + encodeURIComponent(word)
   };
-  if (['lycee', 'ws', 'wsr', 'pm'].includes(code)) return {
+  if (['lycee', 'ws', 'wsr', 'pm', 'sev', 'sev_en'].includes(code)) return {
     marketplace: false, url: '/api/official/' + code + '/search?word=' + encodeURIComponent(word)
   };
   return null;
