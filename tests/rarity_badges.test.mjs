@@ -20,4 +20,8 @@ test('hover description uses the interface language', () => {
   assert.equal(rarityDescription('wsr', 'SEC', 'en'), 'SEC · Secret');
   assert.equal(rarityDescription('wsr', 'sec', 'zh-CN'), 'SEC · 秘密稀有卡');
   assert.equal(rarityDescription('pm', 'SR', 'en'), null);
+  assert.equal(rarityDescription('sev', 'SR', 'en'), 'SR · Silver Rare');
+  assert.equal(rarityDescription('SEV EN', 'S', 'zh-CN'), 'S · 银稀有卡');
+  assert.equal(rarityTier('sev_en', 'U'), 'rare');
+  assert.equal(rarityTier('sev', 'SD'), 'special');
 });

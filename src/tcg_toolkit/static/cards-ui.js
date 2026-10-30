@@ -19,7 +19,7 @@ const number = value => value.toLocaleString(getLanguage());
 const editorOpen = () => $('card-dialog').open;
 // Games are picked from a fixed list. A record saved earlier with another game name
 // keeps it as an extra option, so editing never silently changes the stored game.
-const GAMES = ['WS', 'WSR', 'PM', 'Lycee', 'ChaosTCG'];
+const GAMES = ['WS', 'WS EN', 'WSR', 'PM', 'SEV', 'SEV EN', 'Lycee', 'ChaosTCG'];
 function gameOptions() {
   const draft = inventory.state.draft, select = $('card-game');
   const canonical = GAMES.find(game => game.toLowerCase() === draft.game.trim().toLowerCase());
@@ -74,7 +74,7 @@ function visibleCards(records) {
   return sortCards(rows, filters.sort);
 }
 // Game logos shown after the game name in filter chips (keys match gameKey()).
-const GAME_LOGOS = {ws: './game-ws.webp', wsr: './game-wsr.webp', pm: './game-pm.webp', lycee: './game-lycee.webp', chaostcg: './game-chaos.webp'};
+const GAME_LOGOS = {ws: './game-ws.webp', 'ws en': './game-ws.webp', wsr: './game-wsr.webp', pm: './game-pm.webp', sev: './game-sev.png', 'sev en': './game-sev.png', lycee: './game-lycee.webp', chaostcg: './game-chaos.webp'};
 function gameChips() {
   const games = new Map(inventory.state.records.map(row => [row.game.toLowerCase(), row.game]));
   $('cards-game-chips').replaceChildren(...[...games].sort((a, b) => collator.compare(a[1], b[1])).map(([key, label]) => {
@@ -172,7 +172,7 @@ function openEditor(id = '') {
 }
 // Owned quantities for search and favorites. Search uses game codes (wsr, chaos),
 // the inventory uses display names (WSR, ChaosTCG); both reduce to one key.
-const gameKey = game => ({chaos: 'chaostcg'})[game.trim().toLowerCase()] ?? game.trim().toLowerCase();
+const gameKey = game => ({chaos: 'chaostcg', sev_en: 'sev en', ws_en: 'ws en'})[game.trim().toLowerCase()] ?? game.trim().toLowerCase();
 const fold = value => (value ?? '').trim().toLowerCase();
 let ownedExact = new Map(), ownedByNumber = new Map(), ownedSignature = '';
 function indexOwned(records) {
@@ -353,6 +353,8 @@ function officialCard(item) {
   return button;
 }
 function renderOfficial() {
+  $('sev-hint').hidden = officialGame() !== 'sev';
+  $('sev-en-hint').hidden = !['sev en', 'sev_en'].includes(officialGame());
   const panel = $('official-panel'), supported = supportsOfficial();
   panel.hidden = !supported;
   if (!supported) return;

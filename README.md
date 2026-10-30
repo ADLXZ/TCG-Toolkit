@@ -1,7 +1,7 @@
 # TCG Toolkit
 
 在游游亭（yuyu-tei.jp）找卡、比价、管理收藏和购物车的工具。
-支持 WSR、WS、PM、Lycee、ChaosTCG 五个游戏，可以一次同时搜索多个游戏。
+支持 WSR、WS、PM、Lycee、ChaosTCG、Shadowverse Evolve 六个游戏，可以一次同时搜索多个游戏。
 
 在线版本：<https://oscarzhang-735.github.io/TCG-Toolkit/>（注册账户后即可使用）
 

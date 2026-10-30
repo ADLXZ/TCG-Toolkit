@@ -920,3 +920,12 @@ button.switch:hover .switch-track { filter: brightness(.95); }
   .proxy-settings { flex-wrap: wrap; }
   .proxy-settings .switch { width: 100%; justify-content: space-between; }
 }
+
+/* Compact cart dashboard: tighter tiles, yen original on the value's line, content centred so
+   short tiles (items, cards) do not leave a blank band under their number. */
+.cart-overview { padding: 14px 16px; }
+.cart-overview .stat-tile { justify-content: center; gap: 2px; padding: 10px 14px; }
+.cart-overview .stat-value { font-size: 22px; line-height: 1.25; }
+#cart-subtotal .converted-price { flex-direction: row; align-items: baseline; gap: 8px; }
+#cart-subtotal .original-price { display: inline; margin-top: 0; font-size: 12px; font-weight: 500; }
+.cart-overview .stat-note { margin-top: 2px; }

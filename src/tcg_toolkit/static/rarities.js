@@ -1,6 +1,78 @@
 // Each game has its own rarity system; order is category-local display order.
 export const rarityCategories = ['Normal', 'Rare', 'Special'];
 export const raritySystems = {
+  sev: [
+    {code: 'Unknown', category: 'Normal', english: 'None', chinese: '无', order: 0},
+    {code: 'BR', category: 'Normal', english: 'Bronze Rare', chinese: '铜稀有卡', order: 1},
+    {code: 'SR', category: 'Normal', english: 'Silver Rare', chinese: '银稀有卡', order: 2},
+    {code: 'GR', category: 'Normal', english: 'Gold Rare', chinese: '金稀有卡', order: 3},
+    {code: 'LG', category: 'Normal', english: 'Legendary', chinese: '传说卡', order: 4},
+    // Parallel entries use display order, not pull-rate or price ranking.
+    {code: 'Premium', category: 'Rare', english: 'Premium', chinese: '闪卡加工版', order: 1},
+    {code: 'P', category: 'Rare', english: 'Premium', chinese: '闪卡加工版', order: 1},
+    {code: 'SL', category: 'Rare', english: 'Super Legendary', chinese: '超传说', order: 2},
+    {code: 'UR', category: 'Rare', english: 'Ultimate Rare', chinese: '终极稀有', order: 3},
+    {code: 'SP', category: 'Rare', english: 'Special', chinese: '特别稀有', order: 4},
+    {code: 'SSP', category: 'Rare', english: 'Super Special', chinese: '超特别稀有', order: 5},
+    {code: 'GBF', category: 'Rare', english: 'Granblue Fantasy Rare', chinese: '碧蓝幻想稀有', order: 6},
+    // Distribution, card types and treatments are grouped separately.
+    {code: 'PR', category: 'Special', english: 'Promotional', chinese: '宣传卡', order: 1},
+    {code: 'SD', category: 'Special', english: 'Starter Deck', chinese: '起始卡组', order: 2},
+    {code: 'LD', category: 'Special', english: 'Leader Card', chinese: '主战者卡', order: 3},
+    {code: 'Leader', category: 'Special', english: 'Leader Card', chinese: '主战者卡', order: 3},
+    {code: 'Token', category: 'Special', english: 'Token Card', chinese: '衍生物卡', order: 4},
+    {code: 'EP', category: 'Special', english: 'Evolution Point', chinese: '进化点卡', order: 5},
+    {code: 'SEP', category: 'Special', english: 'Super Evolution Point', chinese: '超进化点卡', order: 6},
+    {code: 'Serial', category: 'Special', english: 'Serial Numbered', chinese: '序列编号卡', order: 7},
+    {code: 'Collaboration', category: 'Special', english: 'Collaboration Special', chinese: '联动特殊卡', order: 8},
+  ],
+  sev_en: [
+    {code: 'Unknown', category: 'Normal', english: 'None', chinese: '无', order: 0},
+    {code: 'B', category: 'Normal', english: 'Bronze Rare', chinese: '铜稀有卡', order: 1},
+    {code: 'S', category: 'Normal', english: 'Silver Rare', chinese: '银稀有卡', order: 2},
+    {code: 'G', category: 'Normal', english: 'Gold Rare', chinese: '金稀有卡', order: 3},
+    {code: 'L', category: 'Normal', english: 'Legendary', chinese: '传说卡', order: 4},
+    // Parallel entries use display order, not pull-rate or price ranking.
+    {code: 'Premium', category: 'Rare', english: 'Premium', chinese: '闪卡加工版', order: 1},
+    {code: 'P', category: 'Rare', english: 'Premium', chinese: '闪卡加工版', order: 1},
+    {code: 'SL', category: 'Rare', english: 'Super Legendary', chinese: '超传说', order: 2},
+    {code: 'U', category: 'Rare', english: 'Ultimate Rare', chinese: '终极稀有', order: 3},
+    {code: 'SP', category: 'Rare', english: 'Special', chinese: '特别稀有', order: 4},
+    {code: 'SSP', category: 'Rare', english: 'Super Special', chinese: '超特别稀有', order: 5},
+    {code: 'GBF', category: 'Rare', english: 'Granblue Fantasy Rare', chinese: '碧蓝幻想稀有', order: 6},
+    // Distribution, card types and treatments are grouped separately.
+    {code: 'PR', category: 'Special', english: 'Promotional', chinese: '宣传卡', order: 1},
+    {code: 'SD', category: 'Special', english: 'Starter Deck', chinese: '起始卡组', order: 2},
+    {code: 'LD', category: 'Special', english: 'Leader Card', chinese: '主战者卡', order: 3},
+    {code: 'Leader', category: 'Special', english: 'Leader Card', chinese: '主战者卡', order: 3},
+    {code: 'Token', category: 'Special', english: 'Token Card', chinese: '衍生物卡', order: 4},
+    {code: 'EP', category: 'Special', english: 'Evolution Point', chinese: '进化点卡', order: 5},
+    {code: 'SEP', category: 'Special', english: 'Super Evolution Point', chinese: '超进化点卡', order: 6},
+    {code: 'Serial', category: 'Special', english: 'Serial Numbered', chinese: '序列编号卡', order: 7},
+    {code: 'Collaboration', category: 'Special', english: 'Collaboration Special', chinese: '联动特殊卡', order: 8},
+  ],
+  ws_en: [
+    {code: 'Unknown', category: 'Normal', english: 'None', chinese: '无', order: 0},
+    {code: 'C', category: 'Normal', english: 'Common', chinese: '普通', order: 1},
+    {code: 'U', category: 'Normal', english: 'Uncommon', chinese: '非普通', order: 2},
+    {code: 'R', category: 'Normal', english: 'Rare', chinese: '稀有', order: 3},
+    {code: 'RR', category: 'Normal', english: 'Double Rare', chinese: '双重稀有', order: 4},
+    {code: 'CC', category: 'Normal', english: 'Climax Common', chinese: '普通高潮卡', order: 5},
+    {code: 'CR', category: 'Normal', english: 'Climax Rare', chinese: '稀有高潮卡', order: 6},
+    {code: 'SR', category: 'Rare', english: 'Super Rare', chinese: '常规特殊闪卡', order: 1},
+    {code: 'RRR', category: 'Rare', english: 'Triple Rare', chinese: '三重稀有平行卡', order: 2},
+    {code: 'RRR+', category: 'Rare', english: 'Triple Rare Plus', chinese: '特殊增强版 RRR', order: 3},
+    {code: 'OFR', category: 'Rare', english: 'Over Frame Rare', chinese: '越框设计的平行卡', order: 4},
+    {code: 'SP', category: 'Rare', english: 'Special', chinese: '特别稀有卡', order: 5},
+    {code: 'SSP', category: 'Rare', english: 'Super Special', chinese: '超特别稀有卡', order: 6},
+    {code: 'SEC', category: 'Rare', english: 'Secret', chinese: '秘密稀有卡', order: 7},
+    {code: 'SEC+', category: 'Rare', english: 'Secret Plus', chinese: '更高规格秘密稀有卡', order: 8},
+    {code: 'SIR', category: 'Rare', english: 'Serial Rare', chinese: '序列编号稀有卡', order: 9},
+    {code: 'ENX', category: 'Rare', english: 'English Exclusive', chinese: '英文版独占特殊插画卡', order: 10},
+    {code: 'TD', category: 'Special', english: 'Trial Deck', chinese: '预组卡', order: 1},
+    {code: 'PR', category: 'Special', english: 'Promotional', chinese: '宣传卡', order: 2},
+    {code: 'TD+', category: 'Special', english: 'Trial Deck Plus', chinese: '强化预组', order: 3},
+  ],
   ws: [
     {code: 'Unknown', category: 'Normal', english: 'None', chinese: '无', order: 0},
     {code: 'C', category: 'Normal', english: 'Common', chinese: '普通卡', order: 1},
@@ -102,7 +174,7 @@ export const raritySystems = {
 
 export function raritiesForGame(game) {
   const key = game?.trim().toLowerCase();
-  const system = key === 'chaostcg' ? 'chaos' : key;
+  const system = ({chaostcg: 'chaos', 'sev en': 'sev_en', 'ws en': 'ws_en'})[key] ?? key;
   return Object.hasOwn(raritySystems, system) ? raritySystems[system] : [];
 }
 

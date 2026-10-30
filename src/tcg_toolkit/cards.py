@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 from .auth.routes import current_user, write_guard
 
 router = APIRouter(prefix='/api/cards')
-GAMES = {'ws': 'WS', 'wsr': 'WSR', 'pm': 'PM', 'lycee': 'Lycee',
+GAMES = {'ws': 'WS', 'ws_en': 'WS EN', 'ws en': 'WS EN', 'wsr': 'WSR', 'pm': 'PM', 'sev': 'SEV', 'sev_en': 'SEV EN', 'sev en': 'SEV EN', 'lycee': 'Lycee',
          'chaos': 'ChaosTCG', 'chaostcg': 'ChaosTCG'}
 
 

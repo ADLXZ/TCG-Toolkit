@@ -6,6 +6,15 @@ const {createCards, filterCards, summarizeCards} = await import(`data:text/javas
 const card = {id: 'one', game: 'WS', card_number: 'ABC-001', rarity: 'SR', name: 'First', quantity: 2, notes: 'Keep'};
 const reply = (data, status = 200) => ({ok: status < 400, status, json: async () => data});
 
+test('SEV language brands stay separate in filters and quantity statistics', () => {
+  const rows = [{...card, game: 'SEV', rarity: 'SP', quantity: 2},
+    {...card, id: 'english', game: 'SEV EN', rarity: 'SP', quantity: 5}];
+  assert.deepEqual(filterCards(rows, {game: 'sev'}), [rows[0]]);
+  assert.deepEqual(filterCards(rows, {game: 'sev en'}), [rows[1]]);
+  assert.deepEqual(summarizeCards(rows).games, [
+    {label: 'SEV', kinds: 1, quantity: 2}, {label: 'SEV EN', kinds: 1, quantity: 5}]);
+});
+
 test('filters and grouped statistics include zero stock without counting its type', () => {
   const rows = [card, {...card, id: 'two', game: 'Custom', name: 'Other', rarity: 'R', quantity: 0}, {...card, id: 'three', quantity: 3}];
   const stats = summarizeCards(rows);

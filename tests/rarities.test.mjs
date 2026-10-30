@@ -50,9 +50,42 @@ test('Lycee uses its own categories for shared and exclusive codes', () => {
 });
 
 test('all systems use the ASCII Unknown code with the Chinese display name', () => {
-  for (const game of ['ws', 'wsr', 'lycee', 'chaos']) {
+  for (const game of ['ws', 'wsr', 'lycee', 'chaos', 'sev', 'sev_en']) {
     assert.equal(findRarity(game, ' unknown ').code, 'Unknown');
     assert.equal(findRarity(game, 'Unknown').chinese, '无');
     assert.equal(findRarity(game, '无'), null);
   }
+});
+
+test('SEV and SEV EN have independent language-specific rarity systems', () => {
+  const normal = game => raritiesForGame(game).filter(entry => entry.category === 'Normal' && entry.order > 0);
+  assert.deepEqual(normal('SEV').map(entry => entry.code), ['BR', 'SR', 'GR', 'LG']);
+  assert.deepEqual(normal('SEV EN').map(entry => entry.code), ['B', 'S', 'G', 'L']);
+  assert.deepEqual(normal('sev_en').map(entry => entry.order), [1, 2, 3, 4]);
+  assert.equal(raritiesForGame('SEV EN'), raritiesForGame('sev_en'));
+  for (const code of ['B', 'S', 'G', 'L', 'U']) assert.equal(findRarity('sev', code), null);
+  for (const code of ['BR', 'SR', 'GR', 'LG', 'UR']) assert.equal(findRarity('sev_en', code), null);
+  assert.equal(findRarity('sev', 'SR').english, 'Silver Rare');
+  assert.equal(findRarity('sev_en', 'U').english, 'Ultimate Rare');
+  assert.equal(findRarity('ws', 'U').english, 'Uncommon');
+});
+
+test('SEV maps parallel rarities and special card types independently', () => {
+  for (const code of ['Premium', 'P', 'SL', 'UR', 'SP', 'SSP', 'GBF']) {
+    assert.equal(findRarity('sev', code).category, 'Rare');
+  }
+  for (const code of ['PR', 'SD', 'LD', 'Leader', 'Token', 'EP', 'SEP', 'Serial', 'Collaboration']) {
+    assert.equal(findRarity('sev', code).category, 'Special');
+  }
+  assert.equal(findRarity('sev_en', 'U').english, 'Ultimate Rare');
+  assert.equal(findRarity('ws', 'U').english, 'Uncommon');
+});
+
+test('WS EN has its own rarity mapping including English exclusives', () => {
+  assert.equal(raritiesForGame('WS EN'), raritiesForGame('ws_en'));
+  assert.deepEqual(raritiesForGame('WS EN').filter(x => x.category === 'Normal').map(x => x.code), ['Unknown', 'C', 'U', 'R', 'RR', 'CC', 'CR']);
+  for (const code of ['SR', 'RRR', 'RRR+', 'OFR', 'SP', 'SSP', 'SEC', 'SEC+', 'SIR', 'ENX']) assert.equal(findRarity('WS EN', code).category, 'Rare');
+  for (const code of ['TD', 'PR', 'TD+']) assert.equal(findRarity('WS EN', code).category, 'Special');
+  assert.equal(findRarity('ws', 'ENX'), null);
+  assert.equal(findRarity('ws_en', 'AGR'), null);
 });

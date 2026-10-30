@@ -147,3 +147,84 @@ def test_pm_failure(client, monkeypatch, failure, status):
         return httpx.Response(200, text='Unavailable', request=httpx.Request('GET', url))
     monkeypatch.setattr(httpx.Client, 'get', get)
     assert client.request('GET', '/api/official/pm/search?word=test').status_code == status
+
+
+def test_sev_en_exact_detail():
+    from tcg_toolkit.official import parse_sev_en
+    html = Path('tests/fixtures/official_sev_en.html').read_text(encoding='utf-8')
+    item = parse_sev_en(html, 'CP04-021EN')[0]
+    assert (item['game'], item['name'], item['rarity']) == ('SEV EN', 'Christina', 'L')
+    assert item['image_url'].endswith('/CP04/CP04-021EN.png')
+    for number in ['CP04-021', 'CP04-022EN', 'cp04-021en']:
+        assert parse_sev_en(html, number) == []
+    assert parse_sev_en('<form id="searchForm"></form>', 'CP04-021') == []
+    with pytest.raises(ValueError):
+        parse_sev_en('<html>error</html>', 'CP04-021EN')
+
+
+def test_sev_en_api(client, monkeypatch):
+    def get(self, url, **kwargs):
+        assert url == 'https://en.shadowverse-evolve.com/cards/'
+        assert kwargs['params'] == {'cardno': 'CP04-021EN'}
+        return httpx.Response(200, text=Path('tests/fixtures/official_sev_en.html').read_text(encoding='utf-8'), request=httpx.Request('GET', url))
+    monkeypatch.setattr(httpx.Client, 'get', get)
+    response = client.request('GET', '/api/official/sev_en/search?word=CP04-021EN')
+    assert response.status_code == 200
+    assert response.json()['items'][0]['card_number'] == 'CP04-021EN'
+    client.headers.pop('Authorization')
+    assert client.request('GET', '/api/official/sev_en/search?word=CP04-021EN').status_code == 401
+
+
+def test_sev_japanese_exact_detail():
+    from tcg_toolkit.official import parse_sev
+    html = Path('tests/fixtures/official_sev.html').read_text(encoding='utf-8')
+    item = parse_sev(html, 'CP04-021')[0]
+    assert (item['game'], item['name'], item['rarity']) == ('SEV', 'クリスティーナ', 'LG')
+    assert item['image_url'] == 'https://shadowverse-evolve.com/wordpress/wp-content/images/cardlist/CP04/cp04-021.png'
+    for number in ['CP04-02', 'CP04-021EN', 'CP04-022']:
+        assert parse_sev(html, number) == []
+    assert parse_sev('<form id="searchForm"></form>', 'CP04-02') == []
+    with pytest.raises(ValueError):
+        parse_sev('<html>error</html>', 'CP04-021')
+
+
+def test_sev_japanese_api(client, monkeypatch):
+    def get(self, url, **kwargs):
+        assert url == 'https://shadowverse-evolve.com/cardlist/'
+        assert kwargs['params'] == {'cardno': 'CP04-021'}
+        return httpx.Response(200, text=Path('tests/fixtures/official_sev.html').read_text(encoding='utf-8'), request=httpx.Request('GET', url))
+    monkeypatch.setattr(httpx.Client, 'get', get)
+    response = client.request('GET', '/api/official/sev/search?word=CP04-021')
+    assert response.status_code == 200
+    assert response.json()['items'][0]['rarity'] == 'LG'
+    assert client.request('GET', '/api/official/sev/search?word=%20').status_code == 422
+    client.headers.pop('Authorization')
+    assert client.request('GET', '/api/official/sev/search?word=CP04-021').status_code == 401
+
+
+def test_ws_en_real_results():
+    from tcg_toolkit.official import parse_ws_en
+    result = parse_ws_en(Path('tests/fixtures/official_ws_en.html').read_text(encoding='utf-8'))
+    assert result['total'] == 97 and len(result['items']) == 5
+    first = result['items'][0]
+    assert (first['game'], first['card_number'], first['name'], first['rarity']) == (
+        'WS EN', 'BD/WE34-E01', '"Astral Harmony" Nanami Hiromachi', 'RR')
+    assert first['image_url'] == 'https://en.ws-tcg.com/wordpress/wp-content/images/cardimages/GBP21/MRAS/WE34_E01.png'
+    assert result['items'][1]['rarity'] == 'SP'
+    assert result['items'][3]['rarity'] == 'OFR'
+    assert parse_ws_en('<p class="c-search__results-item"><span>0</span></p>') == {'items': [], 'total': 0}
+    with pytest.raises(ValueError):
+        parse_ws_en('<html>error</html>')
+
+
+def test_ws_en_api(client, monkeypatch):
+    def get(self, url, **kwargs):
+        assert url == 'https://en.ws-tcg.com/cardlist/searchresults/'
+        assert kwargs['params'] == {'keyword': 'BD/WE34'}
+        return httpx.Response(200, text=Path('tests/fixtures/official_ws_en.html').read_text(encoding='utf-8'), request=httpx.Request('GET', url))
+    monkeypatch.setattr(httpx.Client, 'get', get)
+    response = client.request('GET', '/api/official/ws_en/search?word=BD%2FWE34')
+    assert response.status_code == 200 and response.json()['total'] == 97
+    assert client.request('GET', '/api/official/ws_en/search?word=%20').status_code == 422
+    client.headers.pop('Authorization')
+    assert client.request('GET', '/api/official/ws_en/search?word=BD%2FWE34').status_code == 401

@@ -15,7 +15,7 @@ from .auth.routes import current_user
 from .external.search_proxy import SearchProxyClient
 
 router = APIRouter(prefix='/api/yuyutei', dependencies=[Depends(current_user)])
-GAME_PATHS = {7: 'ws', 8: 'chaos', 11: 'pm', 34: 'lo', 56: 'wsr'}
+GAME_PATHS = {7: 'ws', 8: 'chaos', 11: 'pm', 34: 'lo', 47: 'sev', 56: 'wsr'}
 RARITY = re.compile(r'[A-Za-z0-9+★☆/-]+')
 CACHE_LIMIT = 2000
 # Printed details never change for a product, so a process-wide cache is safe.

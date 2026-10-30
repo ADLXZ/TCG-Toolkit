@@ -58,6 +58,23 @@ python -m pytest -q tests
 node --test tests/*.test.mjs
 ```
 
+## Shadowverse Evolve 搜索器（Python）
+
+`SEVSearcher` 使用 `/sell/sev/s/search?search_word=`，复用现有搜索结果结构和分页方法。
+已接入网页搜索、收藏刷新、卡牌库和游游亭购物车；网页使用 SEV 标识，卡牌库查询使用日版官网 `https://shadowverse-evolve.com/cardlist/?cardno=`，按完整卡号精确匹配（如 `CP04-021`）。CLI 暂未接入。
+
+日版 `SEV` 与英文版 `SEV EN` 是独立卡牌库品牌。同卡号、同稀有度可以分别保存，数量与游戏筛选互不合并。
+日版稀有度映射键为 `sev`，常规等级为 `BR/SR/GR/LG`，终极稀有为 `UR`；英文版映射键为 `sev_en`（也接受 `SEV EN`），对应 `B/S/G/L` 和 `U`。
+英文版卡牌库通过 `https://en.shadowverse-evolve.com/cards/?cardno=` 精确查询完整卡号，核对详情页卡号后填入名称、稀有度和图片；不接入日版价格搜索、收藏刷新或购物车。已有 `SEV` 数据保持原样；需要改为英文版的记录可在卡牌库中手动修改游戏。
+
+```python
+from tcg_toolkit import SEVSearcher
+
+with SEVSearcher() as searcher:
+    page = searcher.search_page("BP01")
+    print(page.to_dict())
+```
+
 ## 游游亭购物车接口与实现
 
 ### API 概览
@@ -253,3 +270,12 @@ Content-Type: application/json
 凭据配置页支持粘贴浏览器 Network 的 Copy as cURL（bash / cmd），点击“保存并验证”。只提取 laravel_session 与 X-CSRF-TOKEN，在浏览器中解析并通过现有账户隔离机制保存至 sessionStorage，不执行命令、不上传原始请求；保存后与 Cookie + CSRF 方式相同，读取一次购物车验证凭据（只提交提取出的两项）。成功后清空粘贴内容；解析失败保留原凭据。退出或切换账户会清空表单。
 
 购物车页在“刷新购物车”左侧提供“获取库存”，列表和网格中的每张卡牌也可单独获取。通过 `/api/yuyutei/product?gid=…&ver=…&cid=…&stock=true&kizu=0` 重新读取详情页隐藏库存字段，不使用编号/稀有度的长期缓存。批量查询按商品和品相去重，最多并发三项；失败可重试，无法识别品相对应库存时显示未知，不视为零库存。库存仅为查询时的快照，不修改购物车数量。
+
+
+## WS 英文版卡牌库
+
+`WS EN` 是独立于 `WS` 的卡牌库品牌，接口标识及稀有度映射键为 `ws_en`。
+添加卡牌时通过 `/api/official/ws_en/search?word=BD%2FWE34` 查询英文官网
+`https://en.ws-tcg.com/cardlist/searchresults/?keyword=`，支持常规关键词匹配，无需完整卡号。
+候选列表显示前 5 条及总匹配数，可填入名称、稀有度和图片；徽章沿用 WS 图标。
+不接入游游亭价格搜索、收藏刷新或购物车。日英文卡牌独立存储、筛选和统计。

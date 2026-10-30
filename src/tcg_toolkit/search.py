@@ -222,3 +222,8 @@ class WSSearcher(BaseSearcher):
 class PMSearcher(BaseSearcher):
     game = Game.PM
     search_path = "/sell/pm/s/search"
+
+
+class SEVSearcher(BaseSearcher):
+    game = Game.SEV
+    search_path = "/sell/sev/s/search"

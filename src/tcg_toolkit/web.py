@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.staticfiles import StaticFiles
 
 from . import (ChaosTCGSearcher, Game, LyceeSearcher, SearchParseError,
-               SearchRequestError, WSRSearcher, WSSearcher, PMSearcher)
+               SearchRequestError, WSRSearcher, WSSearcher, PMSearcher, SEVSearcher)
 from .external.search_proxy import direct_search
 from .external import CurrencyClient, CurrencyConfigError, CurrencyRequestError, TargetCurrency
 
@@ -52,7 +52,7 @@ app.include_router(cards_router)
 app.include_router(official_router)
 app.include_router(yuyutei_router)
 app.include_router(product_router)
-SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher, Game.WS: WSSearcher, Game.PM: PMSearcher}
+SEARCHERS = {Game.WSR: WSRSearcher, Game.LYCEE: LyceeSearcher, Game.CHAOS: ChaosTCGSearcher, Game.WS: WSSearcher, Game.PM: PMSearcher, Game.SEV: SEVSearcher}
 
 
 def proxy_switch_allowed():
