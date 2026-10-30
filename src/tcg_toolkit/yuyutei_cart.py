@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from .auth.routes import current_user, write_guard
 from . import cart_operations
+from .external.search_proxy import YuYuTeiProxyTransport
 
 router = APIRouter(prefix='/api/yuyutei', dependencies=[Depends(current_user)])
 CART_URL = 'https://yuyu-tei.jp/api/cart_order_edit'
@@ -47,7 +48,8 @@ def session_lock(csrf_token):
 @contextmanager
 def cart_session(session_cookie, csrf_token):
     # Reads also hold the lock: rendering the cart can refresh its row mapping.
-    with session_lock(csrf_token), httpx.Client(timeout=20, follow_redirects=False) as client:
+    with session_lock(csrf_token), httpx.Client(timeout=20, follow_redirects=False, trust_env=False,
+                                                   transport=YuYuTeiProxyTransport()) as client:
         client.cookies.set('laravel_session', session_cookie, domain='yuyu-tei.jp', path='/')
         yield client
 

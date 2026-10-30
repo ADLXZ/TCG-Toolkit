@@ -64,3 +64,67 @@ def test_endpoint_configuration(monkeypatch, endpoint):
         assert str(calls[0].url).startswith(endpoint or 'https://yuyu-tei.jp/')
     finally:
         client.close()
+
+
+@pytest.mark.parametrize('direct', [False, True])
+def test_cart_proxy_method_headers_body_and_session_cookie(monkeypatch, direct):
+    from tcg_toolkit.external.search_proxy import direct_search
+    from tcg_toolkit.yuyutei_cart import cart_session, cart_request, CART_PAGE, CART_URL
+    monkeypatch.setenv('TCG_SEARCH_PROXY_URL', 'http://relay.example/proxy')
+    calls = []
+    def handle(self, request):
+        calls.append(request)
+        target = str(request.url) if direct else request.url.params['url']
+        assert target == (CART_PAGE if len(calls) == 1 else CART_URL)
+        assert request.url.host == ('yuyu-tei.jp' if direct else 'relay.example')
+        if len(calls) == 1:
+            assert request.headers['cookie'] == 'laravel_session=original'
+            return httpx.Response(200, headers={'set-cookie': 'laravel_session=rotated; Path=/; Secure; HttpOnly'})
+        assert request.headers['cookie'] == 'laravel_session=rotated'
+        assert request.headers['x-csrf-token'] == 'test-csrf'
+        assert request.headers['referer'] == CART_PAGE
+        assert request.method == 'POST' and request.content == b'counter=1'
+        return httpx.Response(200, text='ok')
+    monkeypatch.setattr(httpx.HTTPTransport, 'handle_request', handle)
+    token = direct_search.set(direct)
+    try:
+        with cart_session('original', 'test-csrf') as client:
+            cart_request(client, 'GET', CART_PAGE)
+            cart_request(client, 'POST', CART_URL, data={'counter': 1},
+                         headers={'x-csrf-token': 'test-csrf', 'referer': CART_PAGE})
+        assert len(calls) == 2
+    finally:
+        direct_search.reset(token)
+
+
+@pytest.mark.parametrize('status', [302, 403, 502])
+def test_cart_proxy_failure_never_retries_or_redirects(monkeypatch, status):
+    from fastapi import HTTPException
+    from tcg_toolkit.yuyutei_cart import cart_session, cart_request, CART_URL
+    monkeypatch.setenv('TCG_SEARCH_PROXY_URL', 'http://relay.example/proxy')
+    calls = []
+    def handle(self, request):
+        calls.append(request)
+        assert request.url.host == 'relay.example'
+        return httpx.Response(status, headers={'location': 'https://yuyu-tei.jp/member/login'})
+    monkeypatch.setattr(httpx.HTTPTransport, 'handle_request', handle)
+    with cart_session('original', 'test-csrf') as client, pytest.raises(HTTPException):
+        cart_request(client, 'POST', CART_URL, data={'counter': 1})
+    assert len(calls) == 1
+
+
+def test_search_redirect_stays_on_proxy(monkeypatch):
+    monkeypatch.setenv('TCG_SEARCH_PROXY_URL', 'http://relay.example/proxy')
+    calls = []
+    def respond(request):
+        calls.append(request)
+        assert request.url.host == 'relay.example'
+        if len(calls) == 1:
+            return httpx.Response(302, headers={'location': 'https://yuyu-tei.jp/sell/ws/s/search?search_word=x'})
+        return httpx.Response(200, text='ok')
+    client = SearchProxyClient(transport=httpx.MockTransport(respond))
+    try:
+        assert client.get('https://yuyu-tei.jp/', timeout=5).text == 'ok'
+        assert len(calls) == 2
+    finally:
+        client.close()

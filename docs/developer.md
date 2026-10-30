@@ -43,7 +43,7 @@ uvicorn tcg_toolkit.web:app --app-dir src --port 8000 --env-file .env
 | `TCG_TRUSTED_ORIGINS` | 允许登录的访问地址，多个用逗号分隔，不含路径 | 空（不允许登录） |
 | `TCG_PORT` | Docker 映射到本机的端口 | `8000` |
 | `RAPIDAPI_KEY` | 汇率接口密钥；不填时只能显示日元 | 空 |
-| `TCG_SEARCH_PROXY_URL` | 搜索 HTML 转发接口；显式设为空可直连 | `http://62.234.212.90:8080/proxy` |
+| `TCG_SEARCH_PROXY_URL` | 游游亭转发接口（搜索、商品详情、凭据验证和购物车）；显式设为空可直连 | `http://62.234.212.90:8080/proxy` |
 | `TCG_USER_DB` | 用户、收藏、个人卡牌与购物车幂等记录数据库路径（直接运行时） | `data/users.sqlite3` |
 | `TCG_CURRENCY_CACHE` | 汇率缓存路径（直接运行时） | `data/currency.sqlite3` |
 | `TCG_PROXY_IPS` | 受信任的反向代理来源 IP，不要设为 `*` | `127.0.0.1` |
@@ -279,3 +279,5 @@ Content-Type: application/json
 `https://en.ws-tcg.com/cardlist/searchresults/?keyword=`，支持常规关键词匹配，无需完整卡号。
 候选列表显示前 5 条及总匹配数，可填入名称、稀有度和图片；徽章沿用 WS 图标。
 不接入游游亭价格搜索、收藏刷新或购物车。日英文卡牌独立存储、筛选和统计。
+
+游游亭购物车使用与搜索相同的代理开关。代理需支持方法、正文、Cookie、CSRF 请求头、状态码和 Set-Cookie 的透传（Lite-Proxy 协议）；不会在代理失败时回退直连或自动重试购物车写入。Cookie 仍按游游亭域名维护，并仅保留在当前操作内。当前默认代理入口为 HTTP，该传输段不加密。

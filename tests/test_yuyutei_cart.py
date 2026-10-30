@@ -26,6 +26,7 @@ def login(client, name):
 
 @pytest.fixture
 def upstream(monkeypatch):
+    monkeypatch.setenv('TCG_SEARCH_PROXY_URL', '')
     calls = []
     result = {'status': 200, 'text': '{"status":"SUCCESS"}'}
 
