@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from tcg_toolkit import (
     ChaosTCGSearcher, Game, LyceeSearcher, SearchPaginationError,
-    SearchParseError, SearchRequestError, StockStatus, WSRSearcher, WSSearcher, PMSearcher,
+    SearchParseError, SearchRequestError, StockStatus, WSRSearcher, WSSearcher, PMSearcher, SEVSearcher,
 )
 
 
@@ -48,6 +48,23 @@ def test_real_item_fields(cls, source, keyword, game, number, price, name):
     assert data["items"][0]["game"] == game.value
     assert data["items"][0]["stock_status"] == "out_of_stock"
     assert data["has_next"] == result.has_next
+
+
+def test_sev_real_page():
+    calls = []
+    with client_for(fixture("sev_1"), calls) as client, SEVSearcher(client=client) as searcher:
+        result = searcher.search_page("BP01")
+    assert str(calls[0].url) == "https://yuyu-tei.jp/sell/sev/s/search?search_word=BP01"
+    item = result.items[0]
+    assert (item.game, item.card_number, item.name, item.price, item.rarity) == (
+        Game.SEV, "BP01-U01", "ローズクイーン", 1780, "UR",
+    )
+    assert item.currency == "JPY"
+    assert (item.stock_status, item.stock_quantity) == (StockStatus.IN_STOCK, 5)
+    assert item.product_url == "https://yuyu-tei.jp/sell/sev/card/bp01/10238"
+    assert item.image_url == "https://card.yuyu-tei.jp/sev/100_140/bp01/10238.jpg"
+    assert result.next_page is None
+    assert result.to_dict()["items"][0]["game"] == "sev"
 
 
 @pytest.mark.parametrize("text,status,quantity", [
