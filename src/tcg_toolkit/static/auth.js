@@ -1,6 +1,8 @@
 import {apiRequest, getToken, setToken, TOKEN_KEY} from './api.js';
 import {t, applyLanguage, setLanguage, getLanguage} from './i18n.js';
 import {createAuthenticatedRequest} from './auth-client.js';
+import {yuyuteiClient} from './yuyutei-client.js';
+import {bindNavMenus, syncNavMenus} from './nav-menu.js';
 const $ = id => document.getElementById(id);
 let user = null, searchApp = null, registering = false, errorKey = '';
 const api = createAuthenticatedRequest(() => signedOut('auth_expired'), apiRequest);
@@ -8,22 +10,26 @@ function showPage() {
   const cards = Boolean(user) && location.hash === '#cards';
   $('cards-panel').hidden = !cards;
   const favorites = Boolean(user) && location.hash === '#favorites';
+  const cart = Boolean(user) && location.hash === '#cart';
+  $('cart-panel').hidden = !cart;
   $('favorites-panel').hidden = !favorites;
   const account = Boolean(user) && location.hash === '#account';
   document.body.classList.toggle('signed-out', !user);
   $('auth-panel').hidden = Boolean(user);
-  $('search').hidden = !user || account || favorites || cards;
+  $('search').hidden = !user || account || favorites || cards || cart;
   $('account-panel').hidden = !account;
   $('user-bar').hidden = !user;
   $('app-nav').hidden = !user;
   $('app-settings').hidden = !user;
   document.querySelectorAll('#app-nav a, #account-link').forEach(a => {
-    if (a.hash === (cards ? '#cards' : account ? '#account' : favorites ? '#favorites' : '#search')) a.setAttribute('aria-current', 'page');
+    if (a.hash === (cards ? '#cards' : cart ? '#cart' : account ? '#account' : favorites ? '#favorites' : '#search')) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
+  syncNavMenus();
 }
 function refresh() {
   applyLanguage(document);
+  syncNavMenus();  // page names in the dropdown toggles follow the language
   $('auth-language').value = getLanguage();
   $('auth-heading').textContent = t(registering ? 'auth_register' : 'auth_login');
   $('auth-submit').textContent = t(registering ? 'auth_register' : 'auth_login');
@@ -53,6 +59,7 @@ function setAvatar(name) {
   for (const id of ['user-avatar', 'account-avatar']) $(id).textContent = name.slice(0, 1).toUpperCase();
 }
 function signedOut(message = '', clearToken = true) {
+  yuyuteiClient.deactivate({clear: clearToken});
   if (clearToken) setToken(null);
   api.invalidate(); searchApp?.clearUser(); user = null;
   registering = false; $('account-status').textContent = '';
@@ -65,12 +72,14 @@ async function signedIn(value) {
   api.invalidate();
   searchApp ??= await import('./app.js');
   if (getToken() !== expectedToken) return;
-  user = value; searchApp.activateUser(user.id, api.fetch);
+  // The cart client must know the account before the search app reads its cart.
+  user = value; yuyuteiClient.activateUser(user.id, api.fetch);
+  searchApp.activateUser(user.id, api.fetch);
   $('account-status').textContent = '';
   $('current-username').textContent = user.username;
   $('account-username').textContent = user.username; setAvatar(user.username);
   $('auth-password').value = ''; $('auth-confirm-password').value = ''; $('auth-password').type = 'password'; errorKey = '';
-  if (!['#account', '#favorites', '#cards'].includes(location.hash)) location.hash = '#search';
+  if (!['#account', '#favorites', '#cards', '#cart'].includes(location.hash)) location.hash = '#search';
   showPage(); refresh();
 }
 function responseError(status) {
@@ -100,6 +109,7 @@ $('auth-switch').addEventListener('click', () => {
   registering = !registering; errorKey = ''; $('auth-password').value = ''; $('auth-confirm-password').value = ''; refresh();
 });
 $('logout').addEventListener('click', async () => {
+  yuyuteiClient.clearCredentials();
   $('logout').disabled = true;
   api.invalidate(); searchApp?.clearUser();
   try {
@@ -113,6 +123,7 @@ $('logout').addEventListener('click', async () => {
 $('auth-language').addEventListener('change', () => {setLanguage($('auth-language').value); refresh();});
 $('language').addEventListener('change', () => {setLanguage($('language').value); refresh();});
 window.addEventListener('hashchange', showPage);
+bindNavMenus();
 refresh(); showPage();
 let restoreGeneration = 0;
 async function restoreSession() {
@@ -120,7 +131,7 @@ async function restoreSession() {
   const token = getToken();
   const destination = location.hash;
   signedOut('', false);
-  if (!token) { $('auth-submit').disabled = false; return; }
+  if (!token) { yuyuteiClient.deactivate(); $('auth-submit').disabled = false; return; }
   $('auth-submit').disabled = true;
   try {
     const response = await apiRequest('/api/auth/me', {cache: 'no-store'});
@@ -133,6 +144,9 @@ async function restoreSession() {
   finally {if (generation === restoreGeneration) $('auth-submit').disabled = false;}
 }
 window.addEventListener('storage', event => {
-  if (event.key === TOKEN_KEY || event.key === null) restoreSession();
+  if (event.key === TOKEN_KEY || event.key === null) {
+    yuyuteiClient.deactivate();
+    restoreSession();
+  }
 });
 await restoreSession();

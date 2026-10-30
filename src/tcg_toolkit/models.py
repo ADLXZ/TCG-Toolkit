@@ -31,6 +31,8 @@ class SearchItem:
     product_url: str
     image_url: str | None = None
     rarity: str | None = None
+    # YuYu-Tei cart identity from the hidden cart_* fields: gid, ver, cid, kizu.
+    cart: dict | None = None
 
     def to_dict(self) -> dict:
         result = asdict(self)

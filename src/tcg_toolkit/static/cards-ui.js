@@ -2,6 +2,8 @@ import {lookupSource, lookupItems} from './card-sources.js';
 import {createCards, filterCards, summarizeCards} from './cards.js';
 import {t, getLanguage} from './i18n.js';
 import {rarityBadge, cardImage, markOrientation} from './card-view.js';
+import {numberButton} from './copy-number.js';
+import {setNavCount} from './nav-count.js';
 import {raritiesForGame, rarityCategories, findRarity, rarityTier, rarityDescription} from './rarities.js';
 const $ = id => document.getElementById(id);
 const fields = ['game', 'card_number', 'rarity', 'name', 'quantity', 'notes', 'image_url'];
@@ -106,7 +108,7 @@ let quantityTarget = null;
 function openQuantity(row) {
   if (inventory.state.busy) return;
   quantityTarget = row.id;
-  $('quantity-card').replaceChildren(node('span', row.game, 'game-tag'), rarityBadge(row), node('span', row.card_number, 'mono'));
+  $('quantity-card').replaceChildren(node('span', row.game, 'game-tag'), rarityBadge(row), numberButton(row.card_number));
   $('quantity-name').textContent = row.name;
   $('quantity-input').value = row.quantity; $('quantity-error').textContent = '';
   $('quantity-dialog').showModal();
@@ -134,7 +136,7 @@ function cardRow(row) {
   const cell = (child, className = '') => {const td = node('td', '', className); td.append(child); tr.append(td);};
   const product = node('div', '', 'product-summary');
   product.append(cardImage(row, {noReferrer: true}), node('span', row.name, 'cards-name'));
-  cell(node('span', row.game, 'game-tag')); cell(rarityBadge(row)); cell(row.card_number, 'mono'); cell(product);
+  cell(node('span', row.game, 'game-tag')); cell(rarityBadge(row)); cell(numberButton(row.card_number)); cell(product);
   cell(quantityButton(row, number(row.quantity)), `numeric${row.quantity ? '' : ' muted'}`); cell(row.notes, 'cards-notes');
   cell(cardActions(row), 'action-col');
   return tr;
@@ -142,7 +144,7 @@ function cardRow(row) {
 function cardTile(row) {
   const card = node('article', '', `card${row.quantity ? '' : ' out_of_stock'}`);
   const tags = node('div', '', 'card-tags'); tags.append(node('span', row.game, 'game-tag'), rarityBadge(row));
-  const top = node('div', '', 'card-top'); top.append(tags, node('span', row.card_number, 'mono'));
+  const top = node('div', '', 'card-top'); top.append(tags, numberButton(row.card_number));
   const quantity = quantityButton(row, t('cards_owned', {quantity: number(row.quantity)}), 'bi-collection');
   const bottom = node('div', '', 'card-bottom'); bottom.append(quantity, cardActions(row));
   card.append(top, cardImage(row, {noReferrer: true}), node('span', row.name, 'card-name'), bottom);
@@ -214,6 +216,8 @@ function render() {
   options('cards-rarity-filter', 'rarity'); gameChips();
   $('cards-sort').value = filters.sort;
   const rows = visibleCards(state.records), stats = summarizeCards(rows), cardsView = currentView();
+  // Whole library, not the current filter: total copies owned.
+  setNavCount($('cards-nav-count'), state.ready ? summarizeCards(state.records).quantity : 0);
   $('cards-stats').hidden = !state.ready || !state.records.length;
   $('cards-kinds').textContent = number(stats.kinds);
   $('cards-quantity-total').textContent = number(stats.quantity);

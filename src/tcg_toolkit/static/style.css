@@ -29,9 +29,19 @@ nav a {
 }
 nav a:hover { background: var(--color-hover); }
 nav a[aria-current] { background: var(--color-primary); color: var(--color-on-primary); }
+/* Breathing room between sidebar items; narrow layouts set their own spacing below. */
+#app-nav { display: flex; flex-direction: column; gap: 20px; }
+/* Two groups: what works on YuYu-Tei, and what is stored on this site. */
+.nav-group { display: flex; flex-direction: column; gap: 6px; }
+.nav-group-items { display: flex; flex-direction: column; gap: 6px; }
+/* Dropdown toggles exist only for portrait phones (see the end of this file). */
+.nav-group-toggle { display: none; }
+.nav-group-label { padding: 0 12px 2px; font-size: 12px; font-weight: 600; letter-spacing: .3px; color: var(--color-text-subtle); }
 
 /* Layout */
-main { margin-left: 208px; max-width: 1560px; padding: 40px 48px 48px; }
+/* Capped for readability; once wider, centre it in the space beside the sidebar so zooming
+   out (or a wide screen) splits the spare room instead of leaving it all on the right. */
+main { margin-left: max(208px, calc((100% + 208px - 1560px) / 2)); max-width: 1560px; padding: 40px 48px 48px; }
 header { margin-bottom: 24px; }
 h1 { font-size: 28px; letter-spacing: -.8px; margin: 0; }
 h2 { font-size: 17px; margin: 0; }
@@ -151,7 +161,8 @@ button:disabled:hover { background: var(--color-primary); border-color: var(--co
 
 /* Table view */
 .table-panel { padding: 0; margin-top: 14px; overflow: hidden; }
-.table-scroll { overflow: auto; }
+/* Positioned so the absolutely placed .sr-only header labels stay inside the scroller. */
+.table-scroll { position: relative; overflow: auto; }
 table { border-collapse: collapse; width: 100%; text-align: left; }
 th {
   font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px;
@@ -167,6 +178,9 @@ td a:hover, .card-name:hover { text-decoration: underline; }
 .numeric { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
 .game-tag { display: inline-block; font-size: 11px; font-weight: 600; white-space: nowrap; color: var(--color-text-secondary); border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: 1px 6px; }
 .rarity-tag { display: inline-block; font-size: 11px; font-weight: 600; white-space: nowrap; color: var(--rarity-normal-text); background: var(--rarity-normal); border-radius: var(--radius-sm); padding: 2px 7px; letter-spacing: .3px; }
+/* Middle, not baseline: rare/special tags clip their sheen (overflow: hidden), which moves an
+   inline-block's baseline to its bottom edge and would lift them above the game tag. */
+.game-tag, .rarity-tag, .cart-tag { vertical-align: middle; }
 .rarity-tag.tier-rare { color: var(--rarity-rare-text); background: var(--rarity-rare); }
 .rarity-tag.tier-special { color: var(--rarity-special-text); background: var(--rarity-special); }
 /* Rare and special: one white sheen sweeps across, then rests. */
@@ -184,7 +198,7 @@ td a:hover, .card-name:hover { text-decoration: underline; }
 .badge.out_of_stock { color: var(--color-text-subtle); }
 
 /* Grid view */
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-top: 14px; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 12px; margin-top: 14px; }
 .card {
   display: flex; flex-direction: column; gap: 10px; padding: 16px;
   background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
@@ -192,7 +206,8 @@ td a:hover, .card-name:hover { text-decoration: underline; }
 }
 .card:hover { border-color: var(--color-border-hover); box-shadow: var(--shadow-md); }
 .card-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 8px; }
-.card-tags { display: flex; align-items: center; gap: 6px; }
+/* Wraps so game, rarity and cart tags never push past a narrow card. */
+.card-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; min-width: 0; }
 .card-name { font-weight: 600; line-height: 1.45; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .card-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--color-divider); }
 .card .price { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -380,7 +395,7 @@ button.password-toggle:hover { border: 0; background: var(--color-hover); color:
 #auth-confirm-password[aria-invalid=true] { border-color: var(--color-text-secondary); }
 
 /* User centre */
-#account-panel { max-width: 960px; }
+/* Same width as the other pages (see main). */
 .profile-card { display: flex; align-items: center; gap: 20px; padding: 24px; margin-bottom: 16px; }
 .profile-meta { flex: 1; min-width: 0; }
 .profile-meta h2 { font-size: 20px; overflow-wrap: anywhere; }
@@ -442,10 +457,10 @@ button.fav-toggle:disabled:hover, button.fav-refresh:disabled:hover { background
 .favorite-controls .fav-meta { flex-direction: column; align-items: flex-end; gap: 2px; white-space: nowrap; }
 .card .fav-meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; margin-top: -2px; }
 .card .fav-meta > span { grid-column: 1; }
-.card .fav-meta .fav-refresh { grid-column: 2; grid-row: 1 / span 2; width: 28px; height: 28px; font-size: 14px; }
+.card .fav-meta .fav-refresh { grid-column: 2; grid-row: 1; width: 28px; height: 28px; font-size: 14px; }
+/* Always level with the update time; a status note, if any, goes on the line below. */
 .fav-time, .fav-note { display: inline-flex; align-items: center; gap: 5px; }
 .fav-note { color: var(--color-text); font-weight: 500; }
-.fav-note.ok { color: var(--color-text-muted); font-weight: 400; }
 #favorites-retry { margin-bottom: 14px; }
 /* Shared page skeleton: header, optional top panel, results heading, filters, list. */
 header + .results > .section-heading { margin-top: 0; }
@@ -656,3 +671,232 @@ td.owned-cell.muted { font-weight: 400; color: var(--color-text-subtle); }
 
 /* Game logos in search and filter chips; a light backing keeps silver logos visible on checked (dark) chips. */
 .chip-logo { height: 16px; width: auto; margin-left: 2px; padding: 1px 3px; background: var(--color-surface); border-radius: var(--radius-sm); }
+
+/* YuYu-Tei cart: search-result steppers, heading summary, user-centre credentials */
+.cart-bar { display: flex; align-items: center; gap: 2px; }
+.cart-summary { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--color-text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cart-summary a { color: var(--color-text); }
+th.cart-col, td.cart-col { width: 1%; white-space: nowrap; }
+.cart-controls { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.cart-stepper { display: inline-flex; align-items: center; border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); background: var(--color-surface); }
+.cart-stepper.active { border-color: var(--color-primary); }
+button.cart-step { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--color-text-muted); font-size: 13px; }
+button.cart-step:hover { background: var(--color-hover); border: 0; color: var(--color-text); }
+button.cart-step:disabled:hover { background: transparent; }
+.cart-qty { min-width: 26px; text-align: center; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cart-note { display: inline-flex; align-items: center; gap: 5px; max-width: 220px; font-size: 11px; color: var(--color-text); white-space: normal; }
+.card-cart { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.card-cart .cart-controls { align-items: flex-end; min-width: 0; }
+.card-cart .cart-note { justify-content: flex-end; text-align: right; }
+.card-cart-label { flex: none; font-size: 12px; line-height: 30px; color: var(--color-text-muted); }
+.cart-settings { display: flex; flex-direction: column; gap: 16px; padding: 20px; margin-bottom: 16px; }
+.cart-settings-head { display: flex; align-items: flex-start; gap: 14px; }
+.cart-settings-text { flex: 1; min-width: 0; }
+.cart-settings-text h2 { font-size: 15px; }
+.cart-settings-text p { margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: var(--color-text-muted); }
+.cart-settings-meta { display: flex; flex: none; align-items: center; gap: 10px; }
+.cart-state { display: inline-flex; align-items: center; gap: 5px; flex: none; padding: 3px 10px; font-size: 12px; font-weight: 500; color: var(--color-text-muted); background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-pill); }
+.cart-state.ok { color: var(--color-success); background: var(--color-success-bg); border-color: var(--color-success-border); }
+.cart-state.warn { color: var(--color-text); border-color: var(--color-border-strong); }
+.cart-settings-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.cart-settings-fields input { margin-top: 6px; }
+.cart-help { padding: 10px 14px; font-size: 13px; color: var(--color-text-secondary); background: var(--color-surface-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.cart-help summary { cursor: pointer; font-weight: 500; color: var(--color-text); }
+.cart-help[open] summary { margin-bottom: 12px; }
+.cart-help ol { display: grid; gap: 18px; margin: 0; padding-left: 22px; line-height: 1.65; }
+.cart-settings-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+#cart-settings-status { flex: 1; margin: 0; font-size: 13px; color: var(--color-text-muted); }
+#cart-settings-status.error { color: var(--color-text); font-weight: 500; }
+@media (max-width: 700px) {
+  .cart-settings-fields { grid-template-columns: 1fr; }
+  .cart-settings-actions { flex-wrap: wrap; }
+  #cart-settings-status { flex-basis: 100%; }
+}
+/* One rhythm inside each step: text, command, screenshot, notes. */
+.cart-help li > * + * { margin-top: 10px; }
+.cart-help-figure { margin: 0; }
+.cart-help-figure a { display: block; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: zoom-in; }
+.cart-help-figure img { display: block; width: 100%; height: auto; }
+.cart-help-figure figcaption { margin-top: 6px; font-size: 12px; color: var(--color-text-muted); }
+.cart-help-warning { display: flex; align-items: flex-start; gap: 6px; margin: 0; padding: 8px 10px; font-size: 12px; color: var(--color-text); background: var(--color-surface-muted); border: 1px solid var(--color-border-strong); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md); }
+.cart-help-warning .bi { margin-top: 2px; }
+.cart-help-code { display: block; margin: 0; padding: 8px 10px; overflow-x: auto; font-size: 12px; white-space: nowrap; user-select: all; background: var(--color-surface-sunken); border-radius: var(--radius-md); }
+.cart-help-note { display: block; font-size: 12px; color: var(--color-text-muted); }
+
+
+/* Cart page */
+.nav-count { margin-left: auto; min-width: 20px; padding: 1px 6px; font-size: 11px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; color: var(--color-on-primary); background: var(--color-primary); border-radius: var(--radius-pill); }
+.cart-overview { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; margin-bottom: 24px; }
+.cart-tag { display: inline-flex; padding: 1px 7px; font-size: 11px; font-weight: 500; color: var(--color-text); background: var(--color-surface-muted); border: 1px solid var(--color-border-strong); border-radius: var(--radius-pill); }
+.cart-line-total { font-weight: 600; font-variant-numeric: tabular-nums; }
+#cart-table, #cart-grid { margin-top: 14px; }
+#cart-panel .card-cart { align-items: center; }
+#cart-panel .card .cart-line-total { font-size: 12px; color: var(--color-text-secondary); }
+.cart-warning { display: flex; align-items: center; gap: 8px; margin: 14px 0 0; padding: 10px 14px; font-size: 13px; color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-left: 3px solid var(--color-primary); border-radius: var(--radius-md); }
+#cart-empty-action { margin: 12px 0 0; }
+#cart-empty-action:empty { display: none; }
+.cart-empty-link { font-size: 13px; font-weight: 500; color: var(--color-text); }
+@media (max-width: 700px) {
+  .cart-overview .stat-tiles { width: 100%; }
+  .nav-count { margin-left: 2px; }
+}
+#app-nav a[aria-current=page] .nav-count { color: var(--color-primary); background: var(--color-on-primary); }
+.cart-tag { white-space: nowrap; }
+#cart-table .card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Cart prices reuse .converted-price; right-align the yen reference under totals. */
+#cart-panel td.numeric .converted-price, #cart-panel .cart-line-total .converted-price { align-items: flex-end; }
+#cart-panel .card .cart-line-total { display: inline-flex; align-items: flex-start; gap: 6px; }
+.cart-line-label { font-size: 12px; font-weight: 400; color: var(--color-text-muted); }
+#cart-subtotal .original-price { display: block; margin-top: 2px; font-size: 12px; letter-spacing: 0; }
+
+/* Credential routes: recommended Cookie + CSRF first, cURL import as the alternative */
+.cart-settings-body[hidden] { display: none; }
+#cart-settings-form { display: flex; flex-direction: column; gap: 16px; }
+.cart-route { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+.cart-route.recommended { border-color: var(--color-border-strong); box-shadow: var(--shadow-sm); }
+.cart-route-head { display: flex; align-items: center; gap: 8px; }
+.cart-route-head h3 { font-size: 14px; }
+.cart-route-tag { padding: 1px 8px; font-size: 11px; font-weight: 600; color: var(--color-on-primary); background: var(--color-primary); border-radius: var(--radius-pill); }
+.cart-route-tag.muted { color: var(--color-text-muted); background: var(--color-surface-muted); border: 1px solid var(--color-border); font-weight: 500; }
+.cart-route-desc { margin: -4px 0 0; font-size: 12px; line-height: 1.6; color: var(--color-text-muted); }
+.cart-route-actions { display: flex; justify-content: flex-end; }
+.cart-route textarea { width: 100%; box-sizing: border-box; min-width: 0; resize: vertical; padding: 10px 12px; font: 12px/1.5 var(--font-mono); color: var(--color-text); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); }
+.cart-route textarea:focus { outline: none; border-color: var(--color-focus); box-shadow: var(--focus-ring); }
+.cart-route-divider { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--color-text-subtle); }
+.cart-route-divider::before, .cart-route-divider::after { content: ""; flex: 1; border-top: 1px solid var(--color-divider); }
+.cart-settings.collapsed { gap: 0; }
+@media (max-width: 700px) {
+  .cart-settings-head { flex-wrap: wrap; }
+  .cart-settings-meta { width: 100%; justify-content: space-between; }
+}
+button.cart-settings-toggle { width: 32px; height: 32px; border-radius: 50%; font-size: 15px; }
+button.cart-settings-toggle:hover { background: var(--color-hover); }
+/* No icon for neutral states: drop the empty element so the gap does not offset the text. */
+#cart-settings-state-icon:not([class~="bi"]) { display: none; }
+
+/* Narrow screens and high zoom: headings wrap instead of squeezing their actions. */
+@media (max-width: 700px) {
+  .section-heading { flex-wrap: wrap; row-gap: 10px; }
+  .section-heading .heading-actions { flex-wrap: wrap; margin-left: auto; }
+}
+/* Four nav links fit as equal columns: icon above a short label. */
+@media (max-width: 480px) {
+  #app-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  #app-nav a { flex-direction: column; justify-content: center; gap: 3px; padding: 7px 4px; font-size: 12px; text-align: center; white-space: normal; }
+  /* Starts just right of the icon, so wider counts (999+) grow away from it. */
+  #app-nav a .nav-count { position: absolute; top: 3px; left: calc(50% + 3px); margin: 0; min-width: 16px; padding: 0 4px; font-size: 10px; line-height: 15px; letter-spacing: -.2px; }
+  #app-nav a { position: relative; }
+}
+/* Cart tiles stay on one row; the note beside them moves below instead of squeezing them. */
+.cart-overview .stat-tiles { flex: none; flex-wrap: nowrap; }
+/* Sized by content, never narrower than it: a long subtotal widens its tile instead of spilling out. */
+.cart-overview .stat-tile { flex: 1 1 auto; width: 120px; min-width: max-content; }
+.cart-overview .stat-value { white-space: nowrap; }
+/* Portrait (phones, tall windows): wrap, but only once the three tiles genuinely do not fit. */
+@media (orientation: portrait) {
+  .cart-overview .stat-tiles { flex: 1 1 100%; flex-wrap: wrap; }
+}
+
+/* Card numbers: look like text, copy on click, confirm with a small bubble. */
+button.copy-number { position: relative; height: auto; padding: 1px 4px; margin: -1px -4px; gap: 0; border: 0; border-radius: var(--radius-sm); background: none; color: var(--color-text-muted); font-weight: 400; cursor: copy; transition: background .15s, color .15s; }
+button.copy-number:hover { background: var(--color-hover); color: var(--color-text); }
+button.copy-number:focus-visible { outline-offset: 1px; }
+button.copy-number[data-copied]::after {
+  content: attr(data-copied); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  padding: 3px 8px; font: 500 11px/1.4 var(--font-sans); white-space: nowrap; color: var(--color-on-primary);
+  background: var(--color-success); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); pointer-events: none; z-index: 5;
+}
+button.copy-number.copy-failed::after { background: var(--color-primary); }
+#preview-number.copy-number { color: inherit; }
+
+/* Typed cart quantity: reads like the old number, becomes a field on hover/focus. */
+input.cart-qty { width: 4ch; min-width: 26px; height: 24px; margin: 0; padding: 0 2px; box-sizing: content-box; text-align: center; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-text); background: transparent; border: 1px solid transparent; border-radius: var(--radius-sm); }
+input.cart-qty:hover:not(:disabled) { border-color: var(--color-border-strong); }
+input.cart-qty:focus { border-color: var(--color-focus); box-shadow: var(--focus-ring); background: var(--color-surface); }
+input.cart-qty:disabled { opacity: 1; color: var(--color-text-subtle); cursor: default; }
+input.cart-qty:disabled:hover { border-color: transparent; }
+
+.bubble-anchor { position: relative; }
+.feedback-bubble { position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 20; width: max-content; max-width: min(260px, 80vw); padding: 10px 14px; border-radius: 8px; color: #713f12; background: #fef3c7; border: 1px solid #f59e0b; box-shadow: 0 4px 16px #0002; white-space: normal; }
+.feedback-bubble::after { content: ''; position: absolute; right: 18px; bottom: -5px; width: 8px; height: 8px; background: #fef3c7; border-right: 1px solid #f59e0b; border-bottom: 1px solid #f59e0b; transform: rotate(45deg); }
+
+.feedback-bubble { animation: feedback-bubble-fade var(--bubble-fade, 300ms) ease-out forwards; animation-delay: 2s; pointer-events: none; }
+@keyframes feedback-bubble-fade { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) {
+  .feedback-bubble { animation-duration: 0ms; }
+}
+
+.feedback-bubble--success { color: #166534; background: #dcfce7; border-color: #86efac; }
+.feedback-bubble--info { color: #1e40af; background: #dbeafe; border-color: #93c5fd; }
+.feedback-bubble--error { color: #991b1b; background: #fee2e2; border-color: #fca5a5; }
+.feedback-bubble::after { background: inherit; border-color: inherit; }
+
+.cart-stock-control { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+/* Round icon button, same footprint as the favorites refresh. */
+button.cart-stock-fetch { width: 28px; height: 28px; flex: none; border-radius: 50%; font-size: 14px; }
+button.cart-stock-fetch:hover { background: var(--color-hover); color: var(--color-text); }
+button.cart-stock-fetch:disabled:hover { background: transparent; }
+.badge.stock-short { color: var(--color-text); font-weight: 600; }
+.badge.stock-short .bi { color: var(--rarity-rare); }
+.badge.stock-failed { color: var(--color-text-muted); }
+/* Badge left, button right: buttons line up in one column (table) and at the card edge (grid). */
+.cart-stock-control { justify-content: space-between; }
+td .cart-stock-control { gap: 8px; min-width: 128px; }
+.card .cart-stock-control { margin-top: -4px; }
+
+/* Checkout button: opens YuYu-Tei's own cart. */
+.cart-checkout-slot { flex: none; margin-left: auto; }
+a.cart-checkout {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 10px;
+  font-weight: 600; white-space: nowrap; text-decoration: none; color: var(--color-on-primary);
+  background: var(--color-primary); border-radius: var(--radius-md); transition: background .15s;
+}
+a.cart-checkout:hover { background: var(--color-primary-hover); }
+/* White disc behind the logo, like the game logos on chips, so it reads on the dark button. */
+a.cart-checkout .cart-checkout-logo { width: 24px; height: 24px; flex: none; padding: 2px; background: var(--color-surface); border-radius: 50%; }
+a.cart-checkout .bi { font-size: 12px; opacity: .8; }
+/* Small print under the subtotal; capped so it wraps instead of widening the tile. */
+.stat-note { display: block; max-width: 17em; font-size: 11px; line-height: 1.5; color: var(--color-text-muted); }
+
+/* Narrow screens: one row of links, so the groups dissolve and their labels are hidden. */
+@media (max-width: 700px) {
+  #app-nav { flex-direction: row; }
+  .nav-group, .nav-group-items { display: contents; }
+  .nav-group-label { display: none; }
+}
+
+/* Portrait phones: two dropdowns, "YuYu-Tei" and "Local" (nav-menu.js opens and closes them). */
+@media (max-width: 700px) and (orientation: portrait) {
+  #app-nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  #app-nav .nav-group { display: block; position: relative; }
+  /* Tab-like headers: no box, a baseline underneath; the current group's underline is dark. */
+  .nav-group-toggle {
+    display: flex; align-items: center; gap: 6px; width: 100%; height: 40px; padding: 0 4px;
+    font-weight: 500; color: var(--color-text-muted); background: transparent;
+    border: 0; border-bottom: 2px solid var(--color-border); border-radius: 0;
+    transition: color .15s, border-color .15s;
+  }
+  .nav-group-toggle:hover { color: var(--color-text); background: transparent; border-color: var(--color-border); border-bottom-color: var(--color-border-hover); }
+  .nav-group.open .nav-group-toggle { color: var(--color-text); }
+  .nav-group-toggle .bi-chevron-down { margin-left: auto; font-size: 12px; transition: transform .15s; }
+  .nav-group.open .nav-group-toggle .bi-chevron-down { transform: rotate(180deg); }
+  .nav-group-current { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-group-current:not(:empty)::before { content: '· '; }
+  /* The group holding the current page looks like the active nav item. */
+  .nav-group.has-current .nav-group-toggle, .nav-group.has-current .nav-group-toggle:hover { color: var(--color-text); font-weight: 600; border-bottom-color: var(--color-primary); }
+  /* A dot on the toggle when any page inside has a count bubble. */
+  .nav-group-toggle { position: relative; }
+  /* Count dot sits just left of the arrow now that there is no box corner to hang it on. */
+  .nav-group:has(.nav-count:not([hidden])) .nav-group-toggle::after {
+    content: ''; position: absolute; top: 50%; right: 24px; width: 7px; height: 7px; margin-top: -4px;
+    border-radius: 50%; background: var(--color-primary);
+  }
+  #app-nav .nav-group-items {
+    display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30;
+    flex-direction: column; gap: 2px; padding: 6px;
+    background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  }
+  #app-nav .nav-group.open .nav-group-items { display: flex; }
+  #app-nav .nav-group-items a { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 9px 10px; font-size: 14px; text-align: left; white-space: nowrap; }
+  #app-nav .nav-group-items a .nav-count { position: static; transform: none; margin-left: auto; min-width: 20px; padding: 1px 6px; font-size: 11px; line-height: normal; letter-spacing: 0; }
+}

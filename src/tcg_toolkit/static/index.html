@@ -16,7 +16,7 @@
 <body class="signed-out">
 <aside>
 <a class="brand" href="./"><i class="bi bi-stack"></i><span data-i18n="tcg"></span><span data-i18n="toolkit"></span></a>
-<nav id="app-nav" hidden><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span></a><a href="#cards"><i class="bi bi-collection"></i><span data-i18n="cards_title"></span></a></nav>
+<nav id="app-nav" hidden><div class="nav-group" role="group" aria-labelledby="nav-group-shop"><button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-shop-items"><span class="nav-group-name" data-i18n="nav_group_shop"></span><span class="nav-group-current"></span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><span class="nav-group-label" id="nav-group-shop" data-i18n="nav_group_shop"></span><div class="nav-group-items" id="nav-group-shop-items"><a aria-current="page" href="#search"><i class="bi bi-search"></i><span data-i18n="search"></span></a><a href="#favorites"><i class="bi bi-star"></i><span data-i18n="favorites"></span><span id="favorites-nav-count" class="nav-count" hidden></span></a><a href="#cart"><i class="bi bi-cart3"></i><span data-i18n="cart_title"></span><span id="cart-nav-count" class="nav-count" hidden></span></a></div></div><div class="nav-group" role="group" aria-labelledby="nav-group-local"><button type="button" class="nav-group-toggle" aria-expanded="false" aria-controls="nav-group-local-items"><span class="nav-group-name" data-i18n="nav_group_local"></span><span class="nav-group-current"></span><i class="bi bi-chevron-down" aria-hidden="true"></i></button><span class="nav-group-label" id="nav-group-local" data-i18n="nav_group_local"></span><div class="nav-group-items" id="nav-group-local-items"><a href="#cards"><i class="bi bi-collection"></i><span data-i18n="cards_title"></span><span id="cards-nav-count" class="nav-count" hidden></span></a></div></div></nav>
 <div id="app-settings" class="sidebar-settings" hidden>
 <label class="setting" data-i18n-title="language"><i class="bi bi-globe2"></i><select data-i18n-aria-label="language" id="language"><option data-i18n="english" value="en"></option><option data-i18n="chinese" value="zh-CN"></option></select></label>
 <label class="setting" data-i18n-title="display_currency"><i class="bi bi-currency-exchange"></i><select id="currency" data-i18n-aria-label="display_currency"><option value="JPY" data-i18n="currency_jpy"></option><option value="CNY" data-i18n="currency_cny"></option><option value="CAD" data-i18n="currency_cad"></option></select></label>
@@ -52,6 +52,53 @@
 <div class="profile-actions">
 <button id="logout" type="button" class="secondary"><i class="bi bi-box-arrow-right"></i><span data-i18n="auth_logout"></span></button>
 <span id="account-status" role="alert"></span>
+</div>
+</section>
+<section class="panel cart-settings" id="cart-settings" aria-labelledby="cart-settings-title">
+<div class="cart-settings-head"><span class="account-icon"><i class="bi bi-cart3"></i></span><div class="cart-settings-text"><h2 id="cart-settings-title" data-i18n="cart_settings_title"></h2><p><strong data-i18n="cart_settings_intro_lead"></strong> <span data-i18n="cart_settings_intro"></span></p></div>
+<div class="cart-settings-meta"><span id="cart-settings-state" class="cart-state" role="status"><i id="cart-settings-state-icon" aria-hidden="true"></i><span id="cart-settings-state-label"></span></span><button type="button" id="cart-settings-toggle" class="icon-button cart-settings-toggle" aria-controls="cart-settings-body" hidden><i id="cart-settings-toggle-icon" class="bi bi-chevron-down" aria-hidden="true"></i></button></div></div>
+<div id="cart-settings-body" class="cart-settings-body">
+<form id="cart-settings-form" autocomplete="off" novalidate>
+<section class="cart-route recommended" aria-labelledby="cart-route-manual-title">
+<div class="cart-route-head"><h3 id="cart-route-manual-title" data-i18n="cart_route_manual"></h3><span class="cart-route-tag" data-i18n="cart_route_recommended"></span></div>
+<p class="cart-route-desc" data-i18n="cart_route_manual_desc"></p>
+<div class="cart-settings-fields">
+<label class="field"><span data-i18n="cart_cookie"></span><input id="cart-cookie" type="password" autocomplete="off" spellcheck="false" maxlength="16384" data-i18n-placeholder="cart_cookie_placeholder"/></label>
+<label class="field"><span data-i18n="cart_csrf"></span><input id="cart-csrf" type="password" autocomplete="off" spellcheck="false" maxlength="4096" data-i18n-placeholder="cart_csrf_placeholder"/></label>
+</div>
+<details class="cart-help"><summary data-i18n="cart_help_title"></summary>
+<ol>
+<li data-i18n="cart_help_1"></li>
+<li><span data-i18n="cart_help_2"></span>
+<figure class="cart-help-figure"><a href="./cart-help-cookies.webp" target="_blank" rel="noopener"><img src="./cart-help-cookies.webp" width="2000" height="1206" loading="lazy" decoding="async" data-i18n-alt="cart_help_figure_alt"/></a><figcaption data-i18n="cart_help_figure"></figcaption></figure>
+<p class="cart-help-warning"><i class="bi bi-exclamation-triangle"></i><span data-i18n="cart_help_xsrf"></span></p></li>
+<li><span data-i18n="cart_help_3"></span><code class="cart-help-code">document.querySelector('meta[name="csrf-token"]').content</code>
+<figure class="cart-help-figure"><a href="./cart-help-console.webp" target="_blank" rel="noopener"><img src="./cart-help-console.webp" width="2000" height="656" loading="lazy" decoding="async" data-i18n-alt="cart_help_console_alt"/></a><figcaption data-i18n="cart_help_console_figure"></figcaption></figure>
+<span class="cart-help-note" data-i18n="cart_help_3_note"></span></li>
+<li data-i18n="cart_help_4"></li>
+</ol></details>
+<div class="cart-route-actions"><button type="submit" id="cart-save"><i class="bi bi-check-lg"></i><span data-i18n="cart_save"></span></button></div>
+</section>
+<div class="cart-route-divider"><span data-i18n="cart_route_or"></span></div>
+<section class="cart-route" aria-labelledby="cart-route-curl-title">
+<div class="cart-route-head"><h3 id="cart-route-curl-title" data-i18n="cart_route_curl"></h3><span class="cart-route-tag muted" data-i18n="cart_route_fallback"></span></div>
+<p id="cart-curl-help" class="cart-route-desc" data-i18n="cart_curl_help"></p>
+<label class="sr-only" for="cart-curl" data-i18n="cart_curl_label"></label>
+<textarea id="cart-curl" rows="4" maxlength="65536" autocomplete="off" spellcheck="false" aria-describedby="cart-curl-help" data-i18n-placeholder="cart_curl_placeholder"></textarea>
+<details class="cart-help"><summary data-i18n="cart_help_title"></summary>
+<ol>
+<li data-i18n="cart_curl_step_1"></li>
+<li><span data-i18n="cart_curl_step_2"></span>
+<figure class="cart-help-figure"><a href="./cart-help-curl.webp" target="_blank" rel="noopener"><img src="./cart-help-curl.webp" width="2000" height="1165" loading="lazy" decoding="async" data-i18n-alt="cart_curl_figure_alt"/></a><figcaption data-i18n="cart_curl_figure"></figcaption></figure></li>
+<li data-i18n="cart_curl_step_3"></li>
+</ol></details>
+<div class="cart-route-actions"><button type="button" id="cart-curl-save"><i class="bi bi-check-lg"></i><span data-i18n="cart_save"></span></button></div>
+</section>
+<div class="cart-settings-actions">
+<p id="cart-settings-status" role="status" aria-live="polite"></p>
+<button type="button" id="cart-clear" class="secondary"><i class="bi bi-trash3"></i><span data-i18n="cart_clear"></span></button>
+</div>
+</form>
 </div>
 </section>
 <div class="account-grid">
@@ -95,6 +142,27 @@
 <div id="cards-empty" class="empty" hidden><i class="bi bi-collection"></i><h3></h3></div>
 </section>
 </main>
+<main id="cart-panel" hidden>
+<header><h1 data-i18n="cart_title"></h1></header>
+<section id="cart-stats" class="panel cart-overview" hidden>
+<div class="stat-tiles">
+<div class="stat-tile"><span class="stat-label" data-i18n="cart_kinds"></span><span class="stat-value" id="cart-kinds"></span></div>
+<div class="stat-tile"><span class="stat-label" data-i18n="cards_quantity_total"></span><span class="stat-value" id="cart-quantity-total"></span></div>
+<div class="stat-tile"><span class="stat-label" data-i18n="cart_subtotal"></span><span class="stat-value" id="cart-subtotal"></span><span class="stat-note" data-i18n="cart_subtotal_note"></span></div>
+</div>
+<div id="cart-checkout-slot" class="cart-checkout-slot"></div>
+</section>
+<section class="results">
+<div class="section-heading">
+<div class="heading-left"><h2 data-i18n="cart_items"></h2><span class="count" id="cart-count" hidden></span><span id="cart-status" role="status" aria-live="polite"></span></div>
+<div class="heading-actions"><button id="cart-get-stock" type="button" class="secondary compact"><i class="bi bi-box-seam"></i><span data-i18n="cart_get_stock"></span></button><button id="cart-page-refresh" type="button" class="secondary compact"><i class="bi bi-arrow-clockwise"></i><span data-i18n="cart_refresh"></span></button><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
+</div>
+<p id="cart-warning" class="cart-warning" role="status" hidden><i class="bi bi-exclamation-triangle"></i><span data-i18n="cart_incomplete_warning"></span></p>
+<div class="panel table-panel" id="cart-table" hidden><div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="cart_unit_price"></th><th data-i18n="stock"></th><th class="cart-col" data-i18n="cart_quantity"></th><th class="numeric" data-i18n="cart_line_subtotal"></th><th class="action-col"><span class="sr-only" data-i18n="cards_actions"></span></th></tr></thead><tbody id="cart-rows"></tbody></table></div></div>
+<div id="cart-grid" class="card-grid" hidden></div>
+<div id="cart-empty" class="empty" hidden><i class="bi bi-cart3"></i><h3></h3><p id="cart-empty-action"></p></div>
+</section>
+</main>
 <main id="search" hidden>
 <header><h1 data-i18n="search"></h1></header>
 <section class="panel">
@@ -125,12 +193,12 @@
 <span class="count" id="counts">0 / 0</span>
 <span aria-live="polite" id="status" role="status"></span>
 </div>
-<div class="heading-actions"><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
+<div class="heading-actions"><div class="cart-bar"><span id="cart-summary" class="cart-summary" aria-live="polite"></span><button type="button" id="cart-refresh" class="icon-button" data-i18n-aria-label="cart_refresh" data-i18n-title="cart_refresh" hidden><i class="bi bi-arrow-clockwise"></i></button></div><div class="view-toggle" data-i18n-aria-label="view" role="group"><button type="button" class="icon-button" data-view="list" data-i18n-aria-label="list_view" data-i18n-title="list_view"><i class="bi bi-list-ul"></i></button><button type="button" class="icon-button" data-view="grid" data-i18n-aria-label="grid_view" data-i18n-title="grid_view"><i class="bi bi-grid-3x3-gap"></i></button></div></div>
 </div>
 <div id="errors" role="alert"></div>
 <div id="search-filters"></div>
 <div class="panel table-panel" id="list-view">
-<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="numeric" data-i18n="cards_owned_column"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="table-scroll"><table><thead><tr><th data-i18n="game"></th><th data-i18n="rarity"></th><th data-i18n="number"></th><th data-i18n="name"></th><th class="numeric" data-i18n="price"></th><th data-i18n="stock"></th><th class="numeric" data-i18n="cards_owned_column"></th><th class="cart-col" data-i18n="cart_column"></th><th class="action-col"><span class="sr-only" data-i18n="favorites"></span></th></tr></thead><tbody id="rows"></tbody></table></div>
 </div>
 <div class="card-grid" hidden="" id="grid-view"></div>
 <div class="empty" id="empty"><i class="bi bi-search"></i><h3 data-i18n="no_results"></h3></div>
@@ -243,10 +311,18 @@
 <button id="cards-delete-confirm" type="button"><i class="bi bi-trash3"></i><span data-i18n="cards_delete"></span></button>
 </div>
 </dialog>
+<dialog id="cart-remove-dialog" class="form-dialog confirm-dialog" aria-labelledby="cart-remove-title" aria-describedby="cart-remove-message">
+<div class="dialog-head"><h2 id="cart-remove-title" data-i18n="cart_remove"></h2></div>
+<p id="cart-remove-message"></p>
+<div class="dialog-actions">
+<button id="cart-remove-cancel" type="button" class="secondary" autofocus data-i18n="detail_cancel"></button>
+<button id="cart-remove-confirm" type="button"><i class="bi bi-trash3"></i><span data-i18n="cart_remove"></span></button>
+</div>
+</dialog>
 <dialog id="image-dialog" class="image-dialog" aria-labelledby="preview-name">
 <button type="button" id="preview-close" class="icon-button preview-close" data-i18n-aria-label="close" data-i18n-title="close"><i class="bi bi-x-lg"></i></button>
 <figure><div class="preview-frame"><img id="preview-image" alt=""/><i class="bi bi-arrow-repeat spin preview-spinner" aria-hidden="true"></i></div>
-<figcaption><span id="preview-name"></span><span id="preview-number" class="mono"></span></figcaption></figure>
+<figcaption><span id="preview-name"></span><button type="button" id="preview-number" class="mono copy-number"></button></figcaption></figure>
 </dialog>
 <dialog id="detail-dialog" aria-labelledby="detail-title" aria-describedby="detail-description">
 <h2 id="detail-title" data-i18n="detail_title"></h2>
@@ -257,5 +333,6 @@
 <a id="detail-confirm" target="_blank" rel="noopener noreferrer" data-i18n="detail_confirm"></a>
 </div>
 </dialog>
+<p id="copy-status" class="sr-only" role="status" aria-live="polite"></p>
 </body>
 </html>

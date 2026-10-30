@@ -11,7 +11,7 @@ class UserStore:
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 4:
+            if version > 7:
                 raise RuntimeError("User database is newer than this application.")
             if version == 0:
                 db.execute("""CREATE TABLE users (
@@ -44,6 +44,30 @@ class UserStore:
             if version < 4:
                 db.execute("ALTER TABLE owned_cards ADD COLUMN image_url TEXT NOT NULL DEFAULT ''")
                 db.execute("PRAGMA user_version = 4")
+
+            if version < 6:
+                db.execute("""CREATE TABLE cart_operations (
+                    user_id TEXT NOT NULL REFERENCES users(id),
+                    operation_key TEXT NOT NULL, request_hash TEXT NOT NULL,
+                    state TEXT NOT NULL CHECK(state IN ('processing', 'complete')),
+                    status_code INTEGER, response_json TEXT,
+                    created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+                    PRIMARY KEY(user_id, operation_key))""")
+                db.execute("PRAGMA user_version = 6")
+
+            if version < 7:
+                db.execute("PRAGMA secure_delete = ON")
+                db.execute("DROP TABLE IF EXISTS yuyutei_credentials")
+        if version < 7:
+            # Remove previously freed credential pages as well as current rows.
+            # External backups are not modified by this migration.
+            with self.connect() as db:
+                db.execute("VACUUM")
+                if db.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()[0]:
+                    raise RuntimeError("Credential cleanup is waiting for database readers; retry startup.")
+                # Keep version 6 until cleanup succeeds, so an interrupted or
+                # failed cleanup is retried on the next startup.
+                db.execute("PRAGMA user_version = 7")
 
     @contextmanager
     def connect(self):
