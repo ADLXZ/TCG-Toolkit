@@ -132,3 +132,11 @@ def test_v3_image_migration_preserves_cards(tmp_path):
         row = db.execute('SELECT * FROM owned_cards').fetchone()
         assert row['id'] == 'existing' and row['quantity'] == 7 and row['image_url'] == ''
         assert db.execute('PRAGMA user_version').fetchone()[0] == 7
+
+
+def test_ws_en_is_separate_inventory_brand(client):
+    for game, expected in [('WS', 'WS'), ('ws_en', 'WS EN')]:
+        response = client.post('/api/cards', json={**CARD, 'game': game})
+        assert response.status_code == 201
+        assert response.json()['game'] == expected
+    assert client.post('/api/cards', json={**CARD, 'game': 'WS EN'}).status_code == 409

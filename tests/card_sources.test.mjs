@@ -38,3 +38,13 @@ test('SEV EN never reuses the Japanese marketplace source', () => {
   assert.equal(lookupSource('SEV EN', 'CP04-021EN').url, '/api/official/sev_en/search?word=CP04-021EN');
   assert.equal(lookupSource('sev_en', 'BP01').marketplace, false);
 });
+
+test('WS EN uses official keyword search and preserves results', () => {
+  for (const game of ['WS EN', 'ws_en']) {
+    const config = lookupSource(game, 'BD/WE34');
+    assert.equal(config.url, '/api/official/ws_en/search?word=BD%2FWE34');
+    assert.equal(config.marketplace, false);
+    const items = [{game: 'WS EN', card_number: 'BD/WE34-E01', rarity: 'RR'}];
+    assert.equal(lookupItems(config, items), items);
+  }
+});

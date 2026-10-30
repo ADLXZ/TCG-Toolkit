@@ -51,6 +51,28 @@ export const raritySystems = {
     {code: 'Serial', category: 'Special', english: 'Serial Numbered', chinese: '序列编号卡', order: 7},
     {code: 'Collaboration', category: 'Special', english: 'Collaboration Special', chinese: '联动特殊卡', order: 8},
   ],
+  ws_en: [
+    {code: 'Unknown', category: 'Normal', english: 'None', chinese: '无', order: 0},
+    {code: 'C', category: 'Normal', english: 'Common', chinese: '普通', order: 1},
+    {code: 'U', category: 'Normal', english: 'Uncommon', chinese: '非普通', order: 2},
+    {code: 'R', category: 'Normal', english: 'Rare', chinese: '稀有', order: 3},
+    {code: 'RR', category: 'Normal', english: 'Double Rare', chinese: '双重稀有', order: 4},
+    {code: 'CC', category: 'Normal', english: 'Climax Common', chinese: '普通高潮卡', order: 5},
+    {code: 'CR', category: 'Normal', english: 'Climax Rare', chinese: '稀有高潮卡', order: 6},
+    {code: 'SR', category: 'Rare', english: 'Super Rare', chinese: '常规特殊闪卡', order: 1},
+    {code: 'RRR', category: 'Rare', english: 'Triple Rare', chinese: '三重稀有平行卡', order: 2},
+    {code: 'RRR+', category: 'Rare', english: 'Triple Rare Plus', chinese: '特殊增强版 RRR', order: 3},
+    {code: 'OFR', category: 'Rare', english: 'Over Frame Rare', chinese: '越框设计的平行卡', order: 4},
+    {code: 'SP', category: 'Rare', english: 'Special', chinese: '特别稀有卡', order: 5},
+    {code: 'SSP', category: 'Rare', english: 'Super Special', chinese: '超特别稀有卡', order: 6},
+    {code: 'SEC', category: 'Rare', english: 'Secret', chinese: '秘密稀有卡', order: 7},
+    {code: 'SEC+', category: 'Rare', english: 'Secret Plus', chinese: '更高规格秘密稀有卡', order: 8},
+    {code: 'SIR', category: 'Rare', english: 'Serial Rare', chinese: '序列编号稀有卡', order: 9},
+    {code: 'ENX', category: 'Rare', english: 'English Exclusive', chinese: '英文版独占特殊插画卡', order: 10},
+    {code: 'TD', category: 'Special', english: 'Trial Deck', chinese: '预组卡', order: 1},
+    {code: 'PR', category: 'Special', english: 'Promotional', chinese: '宣传卡', order: 2},
+    {code: 'TD+', category: 'Special', english: 'Trial Deck Plus', chinese: '强化预组', order: 3},
+  ],
   ws: [
     {code: 'Unknown', category: 'Normal', english: 'None', chinese: '无', order: 0},
     {code: 'C', category: 'Normal', english: 'Common', chinese: '普通卡', order: 1},
@@ -152,7 +174,7 @@ export const raritySystems = {
 
 export function raritiesForGame(game) {
   const key = game?.trim().toLowerCase();
-  const system = ({chaostcg: 'chaos', 'sev en': 'sev_en'})[key] ?? key;
+  const system = ({chaostcg: 'chaos', 'sev en': 'sev_en', 'ws en': 'ws_en'})[key] ?? key;
   return Object.hasOwn(raritySystems, system) ? raritySystems[system] : [];
 }
 

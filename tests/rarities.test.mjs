@@ -80,3 +80,12 @@ test('SEV maps parallel rarities and special card types independently', () => {
   assert.equal(findRarity('sev_en', 'U').english, 'Ultimate Rare');
   assert.equal(findRarity('ws', 'U').english, 'Uncommon');
 });
+
+test('WS EN has its own rarity mapping including English exclusives', () => {
+  assert.equal(raritiesForGame('WS EN'), raritiesForGame('ws_en'));
+  assert.deepEqual(raritiesForGame('WS EN').filter(x => x.category === 'Normal').map(x => x.code), ['Unknown', 'C', 'U', 'R', 'RR', 'CC', 'CR']);
+  for (const code of ['SR', 'RRR', 'RRR+', 'OFR', 'SP', 'SSP', 'SEC', 'SEC+', 'SIR', 'ENX']) assert.equal(findRarity('WS EN', code).category, 'Rare');
+  for (const code of ['TD', 'PR', 'TD+']) assert.equal(findRarity('WS EN', code).category, 'Special');
+  assert.equal(findRarity('ws', 'ENX'), null);
+  assert.equal(findRarity('ws_en', 'AGR'), null);
+});

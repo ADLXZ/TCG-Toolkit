@@ -200,3 +200,31 @@ def test_sev_japanese_api(client, monkeypatch):
     assert client.request('GET', '/api/official/sev/search?word=%20').status_code == 422
     client.headers.pop('Authorization')
     assert client.request('GET', '/api/official/sev/search?word=CP04-021').status_code == 401
+
+
+def test_ws_en_real_results():
+    from tcg_toolkit.official import parse_ws_en
+    result = parse_ws_en(Path('tests/fixtures/official_ws_en.html').read_text(encoding='utf-8'))
+    assert result['total'] == 97 and len(result['items']) == 5
+    first = result['items'][0]
+    assert (first['game'], first['card_number'], first['name'], first['rarity']) == (
+        'WS EN', 'BD/WE34-E01', '"Astral Harmony" Nanami Hiromachi', 'RR')
+    assert first['image_url'] == 'https://en.ws-tcg.com/wordpress/wp-content/images/cardimages/GBP21/MRAS/WE34_E01.png'
+    assert result['items'][1]['rarity'] == 'SP'
+    assert result['items'][3]['rarity'] == 'OFR'
+    assert parse_ws_en('<p class="c-search__results-item"><span>0</span></p>') == {'items': [], 'total': 0}
+    with pytest.raises(ValueError):
+        parse_ws_en('<html>error</html>')
+
+
+def test_ws_en_api(client, monkeypatch):
+    def get(self, url, **kwargs):
+        assert url == 'https://en.ws-tcg.com/cardlist/searchresults/'
+        assert kwargs['params'] == {'keyword': 'BD/WE34'}
+        return httpx.Response(200, text=Path('tests/fixtures/official_ws_en.html').read_text(encoding='utf-8'), request=httpx.Request('GET', url))
+    monkeypatch.setattr(httpx.Client, 'get', get)
+    response = client.request('GET', '/api/official/ws_en/search?word=BD%2FWE34')
+    assert response.status_code == 200 and response.json()['total'] == 97
+    assert client.request('GET', '/api/official/ws_en/search?word=%20').status_code == 422
+    client.headers.pop('Authorization')
+    assert client.request('GET', '/api/official/ws_en/search?word=BD%2FWE34').status_code == 401

@@ -251,3 +251,47 @@ def search_sev_en(word: str = Query(min_length=1, max_length=100)):
 @router.get('/sev/search')
 def search_sev(word: str = Query(min_length=1, max_length=100)):
     return _search_sev(word, english=False)
+
+
+WS_EN_SEARCH = 'https://en.ws-tcg.com/cardlist/searchresults/'
+
+
+def parse_ws_en(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    hits = soup.select_one('.c-search__results-item span')
+    if hits is None:
+        raise ValueError('Unrecognized WS EN results')
+    total = int(hits.get_text(strip=True).replace(',', ''))
+    items = []
+    for link in soup.select('a[href*="?cardno="]')[:5]:
+        number = parse_qs(urlsplit(link['href']).query).get('cardno', [''])[0]
+        name = link.select_one('.ttl')
+        image = link.select_one('.image img[src]')
+        fields = {dt.get_text(strip=True): dt.find_next_sibling('dd').get_text(strip=True)
+                  for dt in link.select('dt') if dt.find_next_sibling('dd')}
+        rarity = fields.get('Rarity')
+        if not number or name is None or not name.get_text(strip=True) or image is None or not rarity:
+            raise ValueError('Invalid WS EN card')
+        image_url = urljoin(WS_EN_SEARCH, image['src'])
+        if urlsplit(image_url).scheme not in ('http', 'https'):
+            image_url = None
+        items.append(dict(game='WS EN', card_number=number, name=name.get_text(' ', strip=True),
+                          rarity=rarity, image_url=image_url))
+    if total and not items:
+        raise ValueError('Missing WS EN cards')
+    return {'items': items, 'total': total}
+
+
+@router.get('/ws_en/search')
+def search_ws_en(word: str = Query(min_length=1, max_length=100)):
+    if not word.strip():
+        raise HTTPException(422, detail='empty_keyword')
+    try:
+        with httpx.Client(timeout=20, follow_redirects=True) as client:
+            response = client.get(WS_EN_SEARCH, params={'keyword': word.strip()})
+            response.raise_for_status()
+        return parse_ws_en(response.text)
+    except httpx.TimeoutException as exc:
+        raise HTTPException(504, detail='official_timeout') from exc
+    except (httpx.HTTPError, ValueError) as exc:
+        raise HTTPException(502, detail='official_unavailable') from exc

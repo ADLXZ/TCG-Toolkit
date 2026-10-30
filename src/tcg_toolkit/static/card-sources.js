@@ -1,11 +1,11 @@
 // Inventory lookup source policy; ChaosTCG uses marketplace snapshots.
 export function lookupSource(game, word) {
-  const code = game.trim().toLowerCase().replace('sev en', 'sev_en');
+  const code = game.trim().toLowerCase().replace('sev en', 'sev_en').replace('ws en', 'ws_en');
   if (code === 'chaostcg' || code === 'chaos') return {
     marketplace: true, game: 'ChaosTCG',
     url: '/api/search?game=' + 'chaos' + '&page=1&keyword=' + encodeURIComponent(word)
   };
-  if (['lycee', 'ws', 'wsr', 'pm', 'sev', 'sev_en'].includes(code)) return {
+  if (['lycee', 'ws', 'wsr', 'pm', 'sev', 'sev_en', 'ws_en'].includes(code)) return {
     marketplace: false, url: '/api/official/' + code + '/search?word=' + encodeURIComponent(word)
   };
   return null;
