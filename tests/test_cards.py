@@ -68,12 +68,15 @@ def test_validation(client, field, value):
     assert client.post('/api/cards', json={**CARD, field: value}).status_code == 422
 
 
-def test_sev_preserves_distinct_language_rarities(client):
-    for rarity in ['BR', 'B']:
-        response = client.post('/api/cards', json={**CARD, 'game': 'sev', 'rarity': rarity})
+def test_sev_brands_are_independent_and_aliases_share_identity(client):
+    # Same number and shared rarity can coexist across brands.
+    for game, expected in [('sev', 'SEV'), ('sev_en', 'SEV EN')]:
+        response = client.post('/api/cards', json={**CARD, 'game': game, 'rarity': 'SP'})
         assert response.status_code == 201
-        assert response.json()['game'] == 'SEV'
-        assert response.json()['rarity'] == rarity
+        assert response.json()['game'] == expected
+    assert client.post('/api/cards', json={**CARD, 'game': ' SEV EN ', 'rarity': 'SP'}).status_code == 409
+    rows = client.get('/api/cards').json()['items']
+    assert {row['game'] for row in rows} == {'SEV', 'SEV EN'}
 
 
 def test_unicode_keys_defaults_and_cors(client):

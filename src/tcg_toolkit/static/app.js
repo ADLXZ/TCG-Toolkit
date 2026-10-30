@@ -17,7 +17,7 @@ import {createProductDetails} from './product-details.js';
 import {createCartStock} from './cart-stock.js';
 const $ = id => document.getElementById(id);
 const checked = name => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
-const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg", "ws": "ws", "pm": "pm", "sev": "sev"};
+const gameKeys = {"wsr": "wsr", "lycee": "lycee", "chaos": "chaostcg", "ws": "ws", "pm": "pm", "sev": "sev", "sev_en": "sev_en"};
 const gameLabel = game => t(gameKeys[game]);
 let items = [], limit = 100, controller = null, batch = 0, started = false;
 const stockKeys = {"in_stock": "in_stock", "out_of_stock": "out_of_stock", "unknown": "unknown"};
