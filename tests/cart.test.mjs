@@ -19,6 +19,8 @@ function fakeClient(overrides = {}) {
 }
 
 test('cart target prefers hidden fields and falls back to the product URL', () => {
+  assert.deepEqual(cartTarget({game: 'sev', product_url: 'https://yuyu-tei.jp/sell/sev/card/bp01/10238'}),
+    {gid: 47, ver: 'bp01', cid: '10238', kizu: 0});
   assert.deepEqual(cartTarget({cart: {...target, kizu: 1}}), {...target, kizu: 1});
   assert.deepEqual(cartTarget({game: 'lycee', product_url: 'https://yuyu-tei.jp/sell/lo/card/bd5.0/123'}),
     {gid: 34, ver: 'bd5.0', cid: '123', kizu: 0});

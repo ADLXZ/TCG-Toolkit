@@ -62,9 +62,27 @@ def test_errors(kind, status, monkeypatch):
     assert 'internal detail' not in response.text
 
 
-@pytest.mark.parametrize("game", ["ws", "pm"])
+@pytest.mark.parametrize("game", ["ws", "pm", "sev"])
 def test_new_game_controls(game):
     from bs4 import BeautifulSoup
     page = BeautifulSoup(client.get('/').text, 'html.parser')
     assert page.select_one(f'input[name="source"][value="{game}"][checked]')
     assert page.select_one(f'input[data-role="game"][value="{game}"][checked]')
+
+
+def test_sev_search_and_logo(monkeypatch):
+    from pathlib import Path
+    from tcg_toolkit import SEVSearcher
+    assert SEARCHERS[Game.SEV] is SEVSearcher
+    html = (Path(__file__).parent / 'fixtures/sev_1.html').read_text(encoding='utf-8')
+    def get(self, url, *, timeout):
+        assert url == 'https://yuyu-tei.jp/sell/sev/s/search?search_word=BP01'
+        return httpx.Response(200, text=html, request=httpx.Request('GET', url))
+    monkeypatch.setattr('tcg_toolkit.external.search_proxy.SearchProxyClient.get', get)
+    response = client.get('/api/search', params={'game': 'sev', 'keyword': 'BP01'})
+    assert response.status_code == 200
+    item = response.json()['items'][0]
+    assert item['game'] == 'sev' and item['card_number'] == 'BP01-U01'
+    assert item['cart']['gid'] == 47
+    logo = client.get('/game-sev.png')
+    assert logo.status_code == 200 and logo.headers['content-type'] == 'image/png'

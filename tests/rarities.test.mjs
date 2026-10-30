@@ -50,9 +50,36 @@ test('Lycee uses its own categories for shared and exclusive codes', () => {
 });
 
 test('all systems use the ASCII Unknown code with the Chinese display name', () => {
-  for (const game of ['ws', 'wsr', 'lycee', 'chaos']) {
+  for (const game of ['ws', 'wsr', 'lycee', 'chaos', 'sev']) {
     assert.equal(findRarity(game, ' unknown ').code, 'Unknown');
     assert.equal(findRarity(game, 'Unknown').chinese, '无');
     assert.equal(findRarity(game, '无'), null);
   }
+});
+
+test('SEV keeps Japanese and English normal rarities separate at equal ranks', () => {
+  const normal = raritiesForGame(' SEV ').filter(entry => entry.category === 'Normal' && entry.order > 0);
+  assert.deepEqual(normal.map(entry => entry.code), ['BR', 'B', 'SR', 'S', 'GR', 'G', 'LG', 'L']);
+  for (let i = 0; i < normal.length; i += 2) {
+    const [japanese, english] = normal.slice(i, i + 2);
+    assert.notEqual(japanese, english);
+    assert.equal(japanese.order, i / 2 + 1);
+    assert.equal(english.order, japanese.order);
+    assert.equal(english.english, japanese.english);
+    assert.equal(english.chinese, japanese.chinese);
+    assert.equal(findRarity('sev', english.code).code, english.code);
+  }
+  assert.equal(findRarity('sev', 'sr').english, 'Silver Rare');
+  assert.equal(findRarity('ws', 'SR').english, 'Super Rare');
+});
+
+test('SEV maps parallel rarities and special card types independently', () => {
+  for (const code of ['Premium', 'P', 'SL', 'UR', 'U', 'SP', 'SSP', 'GBF']) {
+    assert.equal(findRarity('sev', code).category, 'Rare');
+  }
+  for (const code of ['PR', 'SD', 'LD', 'Leader', 'Token', 'EP', 'SEP', 'Serial', 'Collaboration']) {
+    assert.equal(findRarity('sev', code).category, 'Special');
+  }
+  assert.equal(findRarity('sev', 'U').english, 'Ultimate Rare');
+  assert.equal(findRarity('ws', 'U').english, 'Uncommon');
 });

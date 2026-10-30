@@ -25,3 +25,13 @@ test('official games keep their sources; other games have no lookup', () => {
 
   assert.equal(lookupSource('Unknown', 'test'), null);
 });
+
+test('SEV inventory lookup preserves its game and separate English rarity code', () => {
+  const config = lookupSource('SEV', 'BP01-U01');
+  assert.equal(config.url, '/api/search?game=sev&page=1&keyword=BP01-U01');
+  const [item] = lookupItems(config, [{game: 'sev', card_number: 'BP01-U01', name: 'Card', rarity: 'U'}]);
+  assert.equal(item.game, 'SEV');
+  assert.equal(item.rarity, 'U');
+  assert.equal(item.source, 'yuyutei');
+  assert.equal(item.is_official, false);
+});

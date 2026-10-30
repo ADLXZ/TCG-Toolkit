@@ -108,7 +108,7 @@ def test_add_uses_supplied_credentials_and_retains_protocol(client, upstream):
     assert request.extensions['timeout']['read'] == 20
 
 
-@pytest.mark.parametrize('gid,path', [(7, 'ws'), (8, 'chaos'), (11, 'pm'), (34, 'lo'), (56, 'wsr')])
+@pytest.mark.parametrize('gid,path', [(7, 'ws'), (8, 'chaos'), (11, 'pm'), (34, 'lo'), (47, 'sev'), (56, 'wsr')])
 def test_game_referers(client, upstream, gid, path):
     response = client.post(BASE + '/cart', json={**CARD, 'credentials': SECRETS, 'gid': gid, 'ver': 'bd5.0', 'kizu': 1})
     assert response.status_code == 200

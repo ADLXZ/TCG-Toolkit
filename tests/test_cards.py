@@ -68,6 +68,14 @@ def test_validation(client, field, value):
     assert client.post('/api/cards', json={**CARD, field: value}).status_code == 422
 
 
+def test_sev_preserves_distinct_language_rarities(client):
+    for rarity in ['BR', 'B']:
+        response = client.post('/api/cards', json={**CARD, 'game': 'sev', 'rarity': rarity})
+        assert response.status_code == 201
+        assert response.json()['game'] == 'SEV'
+        assert response.json()['rarity'] == rarity
+
+
 def test_unicode_keys_defaults_and_cors(client):
     body = {**CARD, 'game': 'Straße', 'rarity': 'Rare'}
     body.pop('quantity'); body.pop('notes')

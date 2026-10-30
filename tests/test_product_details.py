@@ -55,6 +55,19 @@ def test_rarity_is_optional_but_number_is_required():
         module.parse_product('<main>moved</main>')
 
 
+def test_sev_product_details_and_stock(client):
+    FakeClient.reply = '<div id="product-detail"><span class="border">BP01-U01</span></div>' \
+        '<div id="power"><h3>UR Card</h3></div><div class="counter">' \
+        '<input class="cart_kizu" value="0"><input class="cart_active" value="5"></div>'
+    response = client.get('/api/yuyutei/product', params={
+        'gid': 47, 'ver': 'bp01', 'cid': '10238', 'stock': 'true'})
+    assert response.status_code == 200
+    assert response.json()['card_number'] == 'BP01-U01'
+    assert response.json()['rarity'] == 'UR'
+    assert response.json()['stock_quantity'] == 5
+    assert FakeClient.calls == ['https://yuyu-tei.jp/sell/sev/card/bp01/10238']
+
+
 @pytest.mark.parametrize('params', [{'gid': 1, 'ver': 'OS01', 'cid': '1'}, {'gid': 56, 'ver': '../x', 'cid': '1'},
                                     {'gid': 56, 'ver': 'OS01', 'cid': '1/2'}, {'gid': 56, 'ver': 'OS01'}])
 def test_invalid_identity_never_fetches(client, params):

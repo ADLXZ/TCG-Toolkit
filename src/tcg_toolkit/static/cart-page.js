@@ -10,7 +10,7 @@ const el = (tag, className = '', text = '') => {const node = document.createElem
 const icon = name => el('i', `bi ${name}`);
 const number = value => value.toLocaleString(getLanguage());
 // Cart rows name games by their shop path; the rest of the UI uses search game keys.
-const GAME_KEYS = {lo: 'lycee'}, KNOWN_GAMES = ['wsr', 'lycee', 'chaos', 'ws', 'pm'];
+const GAME_KEYS = {lo: 'lycee'}, KNOWN_GAMES = ['wsr', 'lycee', 'chaos', 'ws', 'pm', 'sev'];
 const targetOf = row => ({gid: row.gid, ver: row.ver, cid: row.cid, kizu: row.kizu});
 const SHOP_CART_URL = 'https://yuyu-tei.jp/cart/sell';
 const STOCK_ICONS = {in_stock: 'bi-check-circle-fill', out_of_stock: 'bi-x-circle', unknown: 'bi-question-circle'};

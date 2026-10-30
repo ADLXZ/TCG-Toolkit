@@ -1,7 +1,7 @@
 // YuYu-Tei cart state for search results: per-product quantities, +1 / −1 actions.
 // The shop is the source of truth; every change is reported back by the server.
-const GAME_IDS = {ws: 7, chaos: 8, pm: 11, lycee: 34, wsr: 56};
-const GAME_PATHS = {ws: 'ws', chaos: 'chaos', pm: 'pm', lycee: 'lo', wsr: 'wsr'};
+const GAME_IDS = {ws: 7, chaos: 8, pm: 11, lycee: 34, sev: 47, wsr: 56};
+const GAME_PATHS = {ws: 'ws', chaos: 'chaos', pm: 'pm', lycee: 'lo', sev: 'sev', wsr: 'wsr'};
 
 // Prefer the hidden cart_* fields; older snapshots fall back to the product URL,
 // whose /card/<ver>/<cid> path is the same identity the cart page links to.

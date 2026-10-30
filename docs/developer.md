@@ -61,7 +61,7 @@ node --test tests/*.test.mjs
 ## Shadowverse Evolve 搜索器（Python）
 
 `SEVSearcher` 使用 `/sell/sev/s/search?search_word=`，复用现有搜索结果结构和分页方法。
-目前仅提供 Python 搜索器，尚未接入 CLI、网页及后续配套功能。
+已接入网页搜索、收藏刷新、卡牌库和游游亭购物车；网页使用 SEV 标识，卡牌库查询来自游游亭。CLI 暂未接入。
 
 ```python
 from tcg_toolkit import SEVSearcher
